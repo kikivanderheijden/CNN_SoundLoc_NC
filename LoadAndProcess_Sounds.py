@@ -1,8 +1,8 @@
 # script to check files in folder
 
 # set directories
-dir_anfiles = "/home/jovyan/DNN_SoundLoc/Data_Sounds_500ms/CochlearProcessedSounds_500ms" # for DSRI
-dir_wrfiles = "/home/jovyan/DNN_SoundLoc/Data_Sounds_500ms"
+dir_anfiles = "/workspace/sounds" # for DSRI
+dir_wrfiles = "/workspace/sounds_npy"
 #dir_anfiles = r"C:\Users\kiki.vanderheijden\Documents\PostDoc_Auditory\DeepLearning\Sounds\TestCochSoundsForDNN_small" # for local testing
 
 # import necessary packages and libraries
@@ -84,9 +84,9 @@ train_an_r_array = np.asarray(train_an_r)
 print("shape of the sound array is ", train_an_l_array.shape)
 
 # save numpy arrays and file names
-np.save(dir_wrfiles+"/an_l_sounds500ms.npy",train_an_l_array)
-np.save(dir_wrfiles+"/an_r_sounds500ms.npy",train_an_r_array)
-np.save(dir_wrfiles+"/labels_sounds500ms.npy",trainlabels)
+np.save(dir_wrfiles+"/an_l_sounds.npy",train_an_l_array)
+np.save(dir_wrfiles+"/an_r_sounds.npy",train_an_r_array)
+np.save(dir_wrfiles+"/labels_sounds.npy",trainlabels)
 
 import pickle
-pickle.dump(filenames, open(dir_wrfiles+'/listfilenames_sounds500ms.p','wb'))
+pickle.dump(filenames, open(dir_wrfiles+'/listfilenames_sounds.p','wb'))
