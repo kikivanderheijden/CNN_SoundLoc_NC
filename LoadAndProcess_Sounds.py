@@ -1,8 +1,8 @@
 # script to check files in folder
 
 # set directories
-dir_anfiles = "/workspace/sounds" # for DSRI
-dir_wrfiles = "/workspace/sounds_npy"
+dir_anfiles = "/workspace/sounds/TRAIN" # for DSRI
+dir_wrfiles = "/workspace/sounds_npy/TRAIN"
 #dir_anfiles = r"C:\Users\kiki.vanderheijden\Documents\PostDoc_Auditory\DeepLearning\Sounds\TestCochSoundsForDNN_small" # for local testing
 
 # import necessary packages and libraries
