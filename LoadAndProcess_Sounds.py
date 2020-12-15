@@ -65,8 +65,8 @@ train_an_l = [None]*trainlabels.shape[0] #intialize list
 train_an_r = [None]*trainlabels.shape[0]
 with os.scandir(dir_anfiles) as listfiles:
     for entry in listfiles:
-        train_an_l[fileidx] = loadmat(dir_anfiles+"/"+entry.name)['AN_l'] # note that indexing is faster than appending
-        train_an_r[fileidx] = loadmat(dir_anfiles+"/"+entry.name)['AN_r']
+        train_an_l[fileidx] = loadmat(dir_anfiles+"/"+entry.name,verify_compressed_data_integrity=False)['AN_l'] # note that indexing is faster than appending
+        train_an_r[fileidx] = loadmat(dir_anfiles+"/"+entry.name,verify_compressed_data_integrity=False)['AN_r']
         countfilesdone = countfilesdone+1
         fileidx = fileidx+1
         # this is just for  debugging to keep track of the time/speed
