@@ -1,9 +1,9 @@
 # script to check files in folder
 
 # set directories
-dir_anfiles = "/workspace/sounds/TRAIN" # for DSRI
-dir_wrfiles = "/workspace/sounds_npy/TRAIN"
-#dir_anfiles = r"C:\Users\kiki.vanderheijden\Documents\PostDoc_Auditory\DeepLearning\Sounds\TestCochSoundsForDNN_small" # for local testing
+dir_anfiles = "/workspace/notebooks/sounds/train" # for DSRI
+dir_wrfiles = "/workspace/notebooks/sounds_npy/train"
+#dir_anfiles = r"C:\Users\kiki.vanderheijden\Documents\SoundsNeuroComputing\TRAIN" # for local testing
 
 # import necessary packages and libraries
 import os # to get info about directories
@@ -14,7 +14,7 @@ t = TicToc() # create instant of class
 from scipy.io import loadmat
 
 # set parameters
-time_sound = 2000 # time dimension of sound files, i.e. number of samples
+time_sound = 1500 # time dimension of sound files, i.e. number of samples
 nfreqs     = 99 # nr of freqs used
 
 # start script
