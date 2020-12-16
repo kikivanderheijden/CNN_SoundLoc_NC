@@ -3,7 +3,7 @@
 
 # define directories, add r before the name because a normal string cannot be used as a path, alternatives are 
 # using / or \\ instead of \
-dir_anfiles = "/workspace/notebooks/sounds_npy/DNN_SoundLoc/sounds_npy" # directory for both channels
+dir_anfiles = "/workspace/notebooks/sounds_npy/train" # directory for both channels
 #dir_anfiles = "C:/Users/kiki.vanderheijden/Documents/PYTHON/DataFiles" # sounds left channel
 
 # import packages and libraries
