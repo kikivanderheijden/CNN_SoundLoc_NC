@@ -72,8 +72,8 @@ for x in range(nrazlocs) :
     filenames_test.extend(filenames_temp_test)
 
 # add a fourth dimension ('channel') to train_an_l and train_an_r which should be 1, this is needed for the input to the DNN
-an_r_train = np.expand_dims(an_r_train,axis = 3)
-an_r_test = np.expand_dims(an_r_test,axis = 3)
+#an_r_train = np.expand_dims(an_r_train,axis = 3)
+a#n_r_test = np.expand_dims(an_r_test,axis = 3)
 
 #save numpy arrays for model evaluation after training
 np.save(dir_anfiles+"/an_r_train_sounds.npy",an_r_train)
