@@ -46,6 +46,11 @@ an_r_rand_train = np.load(dir_anfiles+"/an_r_train_sounds.npy")
 an_r_rand_test = np.load(dir_anfiles+"/an_r_test_sounds.npy")
 print("Loading arrays completed")
 
+an_l_rand_train = np.expand_dims(an_l_rand_train,axis = 3)
+an_l_rand_test = np.expand_dims(an_l_rand_test,axis = 3)
+an_r_rand_train = np.expand_dims(an_r_rand_train,axis = 3)
+an_r_rand_test = np.expand_dims(an_r_rand_test,axis = 3)
+
 # load model
 #t.tic()
 mymodel = load_model(dir_mofiles+"/A_"+modelname+".h5",custom_objects={'GlorotUniform': glorot_uniform(), "cust_mean_squared_error": cust_mean_squared_error, "cos_distmet_2D_angular": cos_distmet_2D_angular})
