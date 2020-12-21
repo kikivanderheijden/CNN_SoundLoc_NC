@@ -46,9 +46,9 @@ for x in range(nrazlocs):
 nrsounds_loc = math.floor(len(labels[:,0])/nrazlocs)
 
 # intiate empty matrics (or zero matrices)
-an_l_eval = np.zeros((nrazlocs*math.floor((1-testset)*nrsounds_loc),len(an_l[1,:,:]),len(an_l[1,1,:]))) # round down here because train_test_split rounds the train size down
-an_r_eval = np.zeros((nrazlocs*math.floor((1-testset)*nrsounds_loc),len(an_r[1,:,:]),len(an_r[1,1,:])))
-labels_eval = np.zeros((nrazlocs*math.floor((1-testset)*nrsounds_loc),len(labels[1,:])))
+an_l_eval = np.zeros(nrsounds_loc,len(an_l[1,:,:]),len(an_l[1,1,:])) # round down here because train_test_split rounds the train size down
+an_r_eval = np.zeros(nrsounds_loc,len(an_r[1,:,:]),len(an_r[1,1,:]))
+labels_eval = np.zeros(nrsounds_loc,len(labels[1,:]))
 filenames_eval = list()
 
 # first take a part away for evaluation
