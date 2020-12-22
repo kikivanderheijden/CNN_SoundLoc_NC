@@ -27,7 +27,6 @@ from CustLoss_MSE import cust_mean_squared_error
 from ModelPredictions import generate_model_predictions
 from CustLoss_cosine_distance_angular import cos_dist_2D_angular
 from CustMet_cosine_distance_angular import cos_distmet_2D_angular
-from CustLoss_Combined_CosineAngular_MSE_weighed import cos_dist_angular_and_mse_weighed # note that in this loss function, the axis of the MSE is set to 1
 
 # create list of file names
 os.chdir(dirfiles)
@@ -113,7 +112,7 @@ for x in range(len(filenames)):
         testval = ws.cell(column = 7, row = vectcheck1.tolist().index(1)+1).value # add one because excel starts from number 1 while pythons starts from zero
     if sum(vectcheck1) == 0 or testval is None: # only continue if this model hasn't been evaluated yet    
         # evaluate the model
-        model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular, "cos_dist_angular_and_mse_weighed": cos_dist_angular_and_mse_weighed})
+        model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular})
         score = model.evaluate(X_test, Y_test, verbose=1)
         # write scores to excel file, if the model is evaluated you should add it to that row, otherwise new row with model name + scores
         if sum(vectcheck1) == 0:
@@ -148,7 +147,7 @@ for x in range(len(filenames)):
     if sum(vectcheck1) > 0: # check whether the model parameters have already been retrieved  
         testval = ws.cell(column = 9, row = vectcheck1.tolist().index(1)+1).value # add one because excel starts from number 1 while pythons starts from zero
     if sum(vectcheck1) == 0 or testval is None: # only continue if the model parameters have not yet been retrieved  
-        model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular, "cos_dist_angular_and_mse_weighed": cos_dist_angular_and_mse_weighed})
+        model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular})
         trainable_count = np.sum([K.count_params(w) for w in model.trainable_weights])
         non_trainable_count = np.sum([K.count_params(w) for w in model.non_trainable_weights])
         # write scores to excel file, if the model is evaluated you should add it to that row, otherwise new row with model name + scores
@@ -182,10 +181,10 @@ for x in range(len(filenames)):
             if modelname_temp_short in existingpreds[y]:
                 vectcheck2[y] = 1
         if sum(vectcheck2) == 0: # only execute predictions if they haven't been done before
-            model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular, "cos_dist_angular_and_mse_weighed": cos_dist_angular_and_mse_weighed})
+            model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular})
             predictions = generate_model_predictions(model, X_test, modelname_temp_short, dirfiles, sizebatches)
     elif len(existingpreds) == 0: # in case there are no prediction files yet
-        model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular, "cos_dist_angular_and_mse_weighed": cos_dist_angular_and_mse_weighed})
+        model = load_model(dirfiles+'/'+modelname_temp_short+'_final.h5', custom_objects={"cust_mean_squared_error": cust_mean_squared_error, "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular})
         predictions = generate_model_predictions(model, X_test, modelname_temp_short, dirfiles, sizebatches)
            
 
