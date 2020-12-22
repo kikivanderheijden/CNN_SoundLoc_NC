@@ -9,7 +9,7 @@
 # set directories
 dirfiles = '/workspace/notebooks/histories/'
 dirscripts = '/workspace/notebooks/scripts'
-dirsounds = '/workspace/sounds_small_npy/eval'
+dirsounds = '/workspace/notebooks/sounds_small_npy/eval'
 
 # import required packages and libraries
 from tensorflow.keras.models import load_model
