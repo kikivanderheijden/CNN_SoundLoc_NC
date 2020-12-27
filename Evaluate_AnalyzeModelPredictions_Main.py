@@ -60,7 +60,7 @@ models_predictions_CNN = np.empty([CNN_nrofmodels,nrevalsounds,2])
 filenames_CNN = list(range(CNN_nrofmodels))
 for x in range(len(filenames)):
     if 'CNN' in filenames[x]:
-        models_predictions_CNN[CNN_counter] = np.load(dirfiles+"\\"+filenames[x])
+        models_predictions_CNN[CNN_counter] = np.load(dirfiles+"/"+filenames[x])
         filenames_CNN[CNN_counter] = filenames[x]
         CNN_counter = CNN_counter+1
 
