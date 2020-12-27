@@ -50,7 +50,7 @@ def Evaluation_CalculateAveragePerformance(CNN_dict_preds, excelfile, filenames_
             modelname_temp = filenames_CNN[w]
             # get nr of model parameters
             for z in range(len(modelsanalyzed)):
-                if modelsanalyzed[z].value == modelname_temp[:-16]:
+                if modelsanalyzed[z].value == modelname_temp[:-19]:
                     CNN_mse_nrparams[count_CNN_mse] = models_nrparams[z].value
                     break
             count_CNN_mse = count_CNN_mse + 1
@@ -61,7 +61,7 @@ def Evaluation_CalculateAveragePerformance(CNN_dict_preds, excelfile, filenames_
             modelname_temp = filenames_CNN[w]
             # get nr of model parameters
             for z in range(len(modelsanalyzed)):
-                if modelsanalyzed[z].value == modelname_temp[:-16]:
+                if modelsanalyzed[z].value == modelname_temp[:-19]:
                     CNN_ad_nrparams[count_CNN_ad] = models_nrparams[z].value
                     break
             count_CNN_ad = count_CNN_ad + 1

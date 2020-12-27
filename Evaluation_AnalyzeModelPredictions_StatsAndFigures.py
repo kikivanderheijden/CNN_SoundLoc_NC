@@ -5,8 +5,8 @@
 #------------------------------------------------------------------------------
 
 # set directories
-dirfiles = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\CNN_SoundLoc_development_GPU\EvaluationFiles'
-dirscripts = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\CNN_SoundLoc_development_GPU'
+dirfiles = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\NC_CNN_SoundLoc_EvaluationFiles'
+dirscripts = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\NC_CNN_SoundLoc'
 excelfile = r'C:\Users\kiki.vanderheijden\Documents\PostDoc_Auditory\DeepLearning\DNN_HumanSoundLoc\DNN_modelspace_overview_performance.xlsx'
 
 #------------------------------------------------------------------------------
@@ -21,11 +21,6 @@ import scipy.stats
 import scikit_posthocs
 import statsmodels.api as sm
 
-os.chdir(dirscripts)
-from Evaluation_AnalyzeModelPredictions_Calculations import Evaluation_ModelPredictions_CNN_calculations, Evaluation_ModelPredictions_CNN_calculations_reversalcorrected
-from Evaluation_AnalyzeModelPredictions_Calculations import Evaluation_ModelPredictions_RNN_calculations, Evaluation_ModelPredictions_RNN_calculations_reversalcorrected
-from Evaluation_AnalyzeModelPerformanceResults_Calculations import Evaluation_CalculateAveragePerformance
-from datetime import datetime
 
 #------------------------------------------------------------------------------
 # Specifications
@@ -35,49 +30,20 @@ from datetime import datetime
 azimuthrange = np.arange(0,360,10)
 
 #------------------------------------------------------------------------------
-# Load data
+# Load dictionaries
 #------------------------------------------------------------------------------
-
-# load information about validation set --> CNN and RNN now use the same data
-labels_val =  np.load(dirfiles+"/labels_evaluation_sounds500ms_correctdiv.npy")
-names_val = pickle.load(open(dirfiles+'/listfilenames_evaluation_sounds500ms_correctdiv.p','rb'))
-labels_val_RNN =  np.load(dirfiles+"/labels_evaluation_sounds500ms_correctdiv.npy")
-names_val_RNN = pickle.load(open(dirfiles+'/listfilenames_evaluation_sounds500ms_correctdiv.p','rb'))
-
+CNN_dict_avgperf = np.load(dirfiles+'/CNN_dict_avgperf_2020-12-27.npy', allow_pickle=True)
+# this is how to access the items CNN_dict_avgperf.item()['CNN_mse_names']
+CNN_dict_avgperf
 
 #------------------------------------------------------------------------------
 # Statistics
 #------------------------------------------------------------------------------ 
-## overall Performance Kruskal-Wallis test
-KW_msescore = scipy.stats.kruskal(CNN_dict_avgperf["CNN_mse_scoremse"],CNN_dict_avgperf["CNN_ad_scoremse"],RNN_dict_avgperf["RNN_mse_scoremse"],RNN_dict_avgperf["RNN_ad_scoremse"]) 
-KW_adscore = scipy.stats.kruskal(CNN_dict_avgperf["CNN_mse_scoread"],CNN_dict_avgperf["CNN_ad_scoread"],RNN_dict_avgperf["RNN_mse_scoread"],RNN_dict_avgperf["RNN_ad_scoread"]) 
-
-# Post-hoc comparisons with Dunn's test
-# first you have to retrieve the data because the Dunn test function accepts only specific format 
-PH_CNN_mse_scoremse = CNN_dict_avgperf["CNN_mse_scoremse"]
-PH_CNN_mse_scoremse = np.reshape(PH_CNN_mse_scoremse,[len(PH_CNN_mse_scoremse,)])
-PH_CNN_ad_scoremse = CNN_dict_avgperf["CNN_ad_scoremse"]
-PH_CNN_ad_scoremse = np.reshape(PH_CNN_ad_scoremse,[len(PH_CNN_ad_scoremse,)])
-PH_RNN_mse_scoremse = RNN_dict_avgperf["RNN_mse_scoremse"]
-PH_RNN_mse_scoremse = np.reshape(PH_RNN_mse_scoremse,[len(PH_RNN_mse_scoremse,)])
-PH_RNN_ad_scoremse = RNN_dict_avgperf["RNN_ad_scoremse"]
-PH_RNN_ad_scoremse = np.reshape(PH_RNN_ad_scoremse,[len(PH_RNN_ad_scoremse,)])
-MSEscore_posthoc = scikit_posthocs.posthoc_dunn([PH_CNN_mse_scoremse,PH_CNN_ad_scoremse,PH_RNN_mse_scoremse,PH_RNN_ad_scoremse], p_adjust = 'fdr_bh')
-
-PH_CNN_mse_scoread = CNN_dict_avgperf["CNN_mse_scoread"]
-PH_CNN_mse_scoread = np.reshape(PH_CNN_mse_scoread,[len(PH_CNN_mse_scoread,)])
-PH_CNN_ad_scoread = CNN_dict_avgperf["CNN_ad_scoread"]
-PH_CNN_ad_scoread = np.reshape(PH_CNN_ad_scoread,[len(PH_CNN_ad_scoread,)])
-PH_RNN_mse_scoread = RNN_dict_avgperf["RNN_mse_scoremse"]
-PH_RNN_mse_scoread = np.reshape(PH_RNN_mse_scoread,[len(PH_RNN_mse_scoread,)])
-PH_RNN_ad_scoread = RNN_dict_avgperf["RNN_ad_scoread"]
-PH_RNN_ad_scoread = np.reshape(PH_RNN_ad_scoread,[len(PH_RNN_ad_scoread,)])
-ADscore_posthoc = scikit_posthocs.posthoc_dunn([PH_CNN_mse_scoread,PH_CNN_ad_scoread,PH_RNN_mse_scoread,PH_RNN_ad_scoread], p_adjust = 'fdr_bh')
 
 ## Effect model complexity, ordinary least squares regression using statsmodel
 # for CNNs
-X = CNN_dict_avgperf["CNN_mse_nrparams"]
-y = CNN_dict_avgperf["CNN_mse_scoremse"]
+X = CNN_dict_avgperf.item()["CNN_mse_nrparams"]
+y = CNN_dict_avgperf.item()["CNN_mse_scoremse"]
 X2 = sm.add_constant(X) # add the constant
 mse_scoremse_est = sm.OLS(y,X2)
 mse_scoremse_est2 = mse_scoremse_est.fit()
@@ -107,35 +73,6 @@ ad_scoread_est2 = ad_scoread_est.fit()
 ad_scoread_est2_params = ad_scoread_est.fit().params
 print(ad_scoread_est2.summary())
 
-# for RNNs
-X = RNN_dict_avgperf["RNN_mse_nrparams"]
-y = RNN_dict_avgperf["RNN_mse_scoremse"]
-X2 = sm.add_constant(X) # add the constant
-RNN_mse_scoremse_est = sm.OLS(y,X2)
-RNN_mse_scoremse_est2 = RNN_mse_scoremse_est.fit()
-print(RNN_mse_scoremse_est2.summary())
-
-X = RNN_dict_avgperf["RNN_ad_nrparams"]
-y = RNN_dict_avgperf["RNN_ad_scoremse"]
-X2 = sm.add_constant(X) # add the constant
-RNN_ad_scoremse_est = sm.OLS(y,X2)
-RNN_ad_scoremse_est2 = RNN_ad_scoremse_est.fit()
-print(RNN_ad_scoremse_est2.summary())
-
-X = RNN_dict_avgperf["RNN_mse_nrparams"]
-y = RNN_dict_avgperf["RNN_mse_scoread"]
-X2 = sm.add_constant(X) # add the constant
-RNN_mse_scoread_est = sm.OLS(y,X2)
-RNN_mse_scoread_est2 = RNN_mse_scoread_est.fit()
-print(RNN_mse_scoread_est2.summary())
-
-X = RNN_dict_avgperf["RNN_ad_nrparams"]
-y = RNN_dict_avgperf["RNN_ad_scoread"]
-X2 = sm.add_constant(X) # add the constant
-RNN_ad_scoread_est = sm.OLS(y,X2)
-RNN_ad_scoread_est2 = RNN_ad_scoread_est.fit()
-print(RNN_ad_scoread_est2.summary())
-
 ## Test whether training loss also predicts the other loss, ordinary least squares regression
 # first, trained on MSE loss, does MSE loss predict AD loss?
 X = CNN_dict_avgperf["CNN_mse_scoremse"]
@@ -146,14 +83,6 @@ cnn_mse_adest2 = cnn_mse_adest.fit()
 cnn_mse_adest2_params = cnn_mse_adest.fit().params
 print(cnn_mse_adest2.summary())
 
-X = RNN_dict_avgperf["RNN_mse_scoremse"]
-y = RNN_dict_avgperf["RNN_mse_scoread"]
-X2 = sm.add_constant(X) # add the constant
-rnn_mse_adest = sm.OLS(y,X2)
-rnn_mse_adest2 = rnn_mse_adest.fit()
-rnn_mse_adest2_params = rnn_mse_adest.fit().params
-print(rnn_mse_adest2.summary())
-
 X = CNN_dict_avgperf["CNN_ad_scoread"]
 y = CNN_dict_avgperf["CNN_ad_scoremse"]
 X2 = sm.add_constant(X) # add the constant
@@ -161,14 +90,6 @@ cnn_ad_mseest = sm.OLS(y,X2)
 cnn_ad_mseest2 = cnn_ad_mseest.fit()
 cnn_ad_mseest2_params = cnn_ad_mseest.fit().params
 print(cnn_ad_mseest2.summary())
-
-X = RNN_dict_avgperf["RNN_ad_scoread"]
-y = RNN_dict_avgperf["RNN_ad_scoremse"]
-X2 = sm.add_constant(X) # add the constant
-rnn_ad_mseest = sm.OLS(y,X2)
-rnn_ad_mseest2 = rnn_ad_mseest.fit()
-rnn_ad_mseest2_params = rnn_ad_mseest.fit().params
-print(rnn_ad_mseest2.summary())
 
 
 #------------------------------------------------------------------------------
