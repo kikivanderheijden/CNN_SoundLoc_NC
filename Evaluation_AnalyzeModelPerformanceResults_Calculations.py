@@ -70,4 +70,6 @@ def Evaluation_CalculateAveragePerformance(CNN_dict_preds, excelfile, filenames_
     CNN_dict_avgperf = dict(CNN_mse_names = CNN_mse_names, CNN_mse_scoremse = CNN_mse_scoremse, CNN_mse_scoread = CNN_mse_scoread, CNN_mse_nrparams = CNN_mse_nrparams, \
                     CNN_ad_names = CNN_ad_names, CNN_ad_scoremse = CNN_ad_scoremse, CNN_ad_scoread = CNN_ad_scoread, CNN_ad_nrparams = CNN_ad_nrparams)
     
+
+    
     return CNN_dict_avgperf
