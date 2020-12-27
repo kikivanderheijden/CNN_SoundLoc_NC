@@ -48,11 +48,8 @@ def Evaluation_CalculateAveragePerformance(CNN_dict_preds, excelfile, filenames_
             CNN_mse_scoremse[count_CNN_mse] = mean_mse_CNN[w]
             CNN_mse_scoread[count_CNN_mse] = mean_ad_CNN[w]
             modelname_temp = filenames_CNN[w]
+            CNN_mse_nrparams[count_CNN_mse] = models_nrparams[w].value
             # get nr of model parameters
-            for z in range(len(modelsanalyzed)):
-                if modelsanalyzed[z].value == modelname_temp[:-19]:
-                    CNN_mse_nrparams[count_CNN_mse] = models_nrparams[z].value
-                    break
             count_CNN_mse = count_CNN_mse + 1
         elif '_AD' in filenames_CNN[w]:
             CNN_ad_names.append(filenames_CNN[w])
