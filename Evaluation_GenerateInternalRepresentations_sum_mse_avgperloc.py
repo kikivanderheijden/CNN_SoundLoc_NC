@@ -32,7 +32,7 @@ azimuthrange = np.arange(0,360,10)
 # layer 9 = conv2D on merge, layer 11 = conv2D , layer 14 = conv2D
 layers_interest = [2,3,9,12,15]
 # specify model name
-sum_mse = 'CNN_sum_K-32-64-64-128_KS-35-35-35-35_MP-12-22-22-32_DO-2-2-2-2-2_MSE_final.h5'
+sum_mse = 'CNN_sum_K-32-32-64-128_KS-37-37-37-37_MP-12-22-22-32_DO-2-2-2-2-2_MSE_final.h5'
 
 #-----------------------------------------------------------------------------
 # load and prepare data 
