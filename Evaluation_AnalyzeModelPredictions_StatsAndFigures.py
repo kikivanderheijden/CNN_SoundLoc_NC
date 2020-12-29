@@ -13,13 +13,10 @@ excelfile = r'C:\Users\kiki.vanderheijden\Documents\PostDoc_Auditory\DeepLearnin
 # import libraries
 #------------------------------------------------------------------------------
 import numpy as np
-import pickle
 import matplotlib.pyplot as plt
 #import math
-import os
 import scipy.stats
-import scikit_posthocs
-import statsmodels.api as sm
+import statsmodels
 
 
 #------------------------------------------------------------------------------
@@ -28,284 +25,564 @@ import statsmodels.api as sm
 
 # set azimuth range
 azimuthrange = np.arange(0,360,10)
+# best models
+CNN_con_mse = "CNN_con_K-32-64-64-128_KS-35-35-35-35_MP-12-22-22-32_DO-2-2-2-2-2_MSE"
+CNN_con_ad = "CNN_con_K-32-64-128-128_KS-35-35-35-35_MP-12-22-22-32_DO-2-2-2-2-2_AD"
+CNN_sub_mse = "CNN_sub_K-32-32-64-128_KS-37-37-37-37_MP-12-22-22-32_DO-2-2-2-2-2_MSE"
+CNN_sub_ad = "CNN_sub_K-32-32-64-128_KS-37-37-37-37_MP-12-22-22-32_DO-2-2-2-2-2_AD"
+CNN_sum_mse = "CNN_sum_K-32-32-64-128_KS-37-37-37-37_MP-12-22-22-32_DO-2-2-2-2-2_MSE"
+CNN_sum_ad = "CNN_sum_K-32-32-64-128_KS-35-35-35-35_MP-12-22-22-32_DO-2-2-2-2-2_AD"
 
 #------------------------------------------------------------------------------
 # Load dictionaries
 #------------------------------------------------------------------------------
-CNN_dict_avgperf = np.load(dirfiles+'/CNN_dict_avgperf_2020-12-27.npy', allow_pickle=True)
+CNN_dict_avgperf = np.load(dirfiles+'/CNN_dict_avgperf_2020-12-28.npy', allow_pickle=True)
+CNN_dict_preds =  np.load(dirfiles+'/CNN_dict_preds_2020-12-28.npy', allow_pickle=True)
+CNN_dict_preds_revcorr =  np.load(dirfiles+'/CNN_dict_preds_revcorr_2020-12-28.npy', allow_pickle=True)
 # this is how to access the items CNN_dict_avgperf.item()['CNN_mse_names']
-CNN_dict_avgperf
 
-#------------------------------------------------------------------------------
-# Statistics
-#------------------------------------------------------------------------------ 
-
-## Effect model complexity, ordinary least squares regression using statsmodel
-# for CNNs
-X = CNN_dict_avgperf.item()["CNN_mse_nrparams"]
-y = CNN_dict_avgperf.item()["CNN_mse_scoremse"]
-X2 = sm.add_constant(X) # add the constant
-mse_scoremse_est = sm.OLS(y,X2)
-mse_scoremse_est2 = mse_scoremse_est.fit()
-mse_scoremse_est2_params = mse_scoremse_est.fit().params
-print(mse_scoremse_est2.summary())
-
-X = CNN_dict_avgperf["CNN_ad_nrparams"]
-y = CNN_dict_avgperf["CNN_ad_scoremse"]
-X2 = sm.add_constant(X) # add the constant
-ad_scoremse_est = sm.OLS(y,X2)
-ad_scoremse_est2 = ad_scoremse_est.fit()
-print(ad_scoremse_est2.summary())
-
-X = CNN_dict_avgperf["CNN_mse_nrparams"]
-y = CNN_dict_avgperf["CNN_mse_scoread"]
-X2 = sm.add_constant(X) # add the constant
-mse_scoread_est = sm.OLS(y,X2)
-mse_scoread_est2 = mse_scoread_est.fit()
-mse_scoread_est2_params = mse_scoread_est.fit().params
-print(mse_scoread_est2.summary())
-
-X = CNN_dict_avgperf["CNN_ad_nrparams"]
-y = CNN_dict_avgperf["CNN_ad_scoread"]
-X2 = sm.add_constant(X) # add the constant
-ad_scoread_est = sm.OLS(y,X2)
-ad_scoread_est2 = ad_scoread_est.fit()
-ad_scoread_est2_params = ad_scoread_est.fit().params
-print(ad_scoread_est2.summary())
-
-## Test whether training loss also predicts the other loss, ordinary least squares regression
-# first, trained on MSE loss, does MSE loss predict AD loss?
-X = CNN_dict_avgperf["CNN_mse_scoremse"]
-y = CNN_dict_avgperf["CNN_mse_scoread"]
-X2 = sm.add_constant(X) # add the constant
-cnn_mse_adest = sm.OLS(y,X2)
-cnn_mse_adest2 = cnn_mse_adest.fit()
-cnn_mse_adest2_params = cnn_mse_adest.fit().params
-print(cnn_mse_adest2.summary())
-
-X = CNN_dict_avgperf["CNN_ad_scoread"]
-y = CNN_dict_avgperf["CNN_ad_scoremse"]
-X2 = sm.add_constant(X) # add the constant
-cnn_ad_mseest = sm.OLS(y,X2)
-cnn_ad_mseest2 = cnn_ad_mseest.fit()
-cnn_ad_mseest2_params = cnn_ad_mseest.fit().params
-print(cnn_ad_mseest2.summary())
-
+filenames_CNN = CNN_dict_preds.item()['filenames_CNN']
+# remove unnecessary parts 
+for x in range(len(filenames_CNN)):
+    filenames_CNN[x] = filenames_CNN[x][1:-16]
 
 #------------------------------------------------------------------------------
 # Create figures
 #------------------------------------------------------------------------------
+# specifications 
+darkblue = '#020884'
+darkgreen = '#088402'
 
-## Figure of average model performance as a function of model complexity
-# first create scatterplots of model performance as a function of model complexity, in terms of MSE loss
-darkblue = '#0026b3'
+
+### bar graph of the percentage of front back reversals in the predictions for each of the three best models 
+revperc = CNN_dict_preds_revcorr.item()['reversals_percentage'] # retrieve all reversal percentages
+# create figure
 plt.figure()
-plt.scatter(CNN_dict_avgperf["CNN_mse_nrparams"],CNN_dict_avgperf["CNN_mse_scoremse"], s = 100, marker = "^", c = darkblue) 
-plt.scatter(CNN_dict_avgperf["CNN_ad_nrparams"],CNN_dict_avgperf["CNN_ad_scoremse"], s = 100, marker = "^", edgecolors = darkblue, facecolors = 'none', linewidth = 2) 
-plt.scatter(RNN_dict_avgperf["RNN_mse_nrparams"],RNN_dict_avgperf["RNN_mse_scoremse"], s = 70, marker = "o", c = 'k') 
-plt.scatter(RNN_dict_avgperf["RNN_ad_nrparams"],RNN_dict_avgperf["RNN_ad_scoremse"], s = 70, marker = "o", edgecolors = 'k', facecolors = 'none', linewidth = 2) 
 plt.grid(color = 'k', linestyle = ':', linewidth = .5)
-plt.legend(['CNN | MSE loss', 'CNN | AD loss','RNN | MSE loss', 'RNN | AD loss'], fontsize = 10)
-plt.xlim(0, 350000)
-plt.ylim(0, 0.25)
-plt.xticks(fontsize = 10)
-plt.yticks(fontsize = 10)
-plt.xlabel('Number of model parameters', fontsize = 12, fontweight = 'bold')
-plt.ylabel('MSE score', fontsize = 12, fontweight = 'bold')
-# plot model fit
-plt.plot(CNN_dict_avgperf["CNN_mse_nrparams"],(mse_scoremse_est2_params[1]* CNN_dict_avgperf["CNN_mse_nrparams"])+ mse_scoremse_est2_params[0],'-', c = 'darkblue')
-plt.savefig(dirfiles+'/Scatterplot_MSE_PerformanceAsFunctionOfModelParams_Python.eps')
- 
- # first create scatterplots of model performance as a function of model complexity, in terms of AD loss
-darkblue = '#0026b3'
-plt.figure()
-plt.scatter(CNN_dict_avgperf["CNN_mse_nrparams"],CNN_dict_avgperf["CNN_mse_scoread"], s = 100, marker = "^", c = darkblue) 
-plt.scatter(CNN_dict_avgperf["CNN_ad_nrparams"],CNN_dict_avgperf["CNN_ad_scoread"], s = 100, marker = "^", edgecolors = darkblue, facecolors = 'none', linewidth = 2) 
-plt.scatter(RNN_dict_avgperf["RNN_mse_nrparams"],RNN_dict_avgperf["RNN_mse_scoread"], s = 70, marker = "o", c = 'k') 
-plt.scatter(RNN_dict_avgperf["RNN_ad_nrparams"],RNN_dict_avgperf["RNN_ad_scoread"], s = 70, marker = "o", edgecolors = 'k', facecolors = 'none', linewidth = 2) 
-plt.grid(color = 'k', linestyle = ':', linewidth = .5)
-#plt.legend(['CNN | MSE loss', 'CNN | AD loss','RNN | MSE loss', 'RNN | AD loss'], fontsize = 10)
-plt.xlim(0, 350000)
-plt.ylim(0, 12)
-plt.xticks(fontsize = 10)
-plt.yticks(fontsize = 10)
-plt.xlabel('Number of model parameters', fontsize = 12, fontweight = 'bold')
-plt.ylabel('AD score (degrees)', fontsize = 12, fontweight = 'bold')
-plt.plot(CNN_dict_avgperf["CNN_mse_nrparams"],(mse_scoread_est2_params[1]* CNN_dict_avgperf["CNN_mse_nrparams"])+ mse_scoread_est2_params[0],'-', c = 'darkblue')
-plt.plot(CNN_dict_avgperf["CNN_ad_nrparams"],(ad_scoread_est2_params[1]* CNN_dict_avgperf["CNN_ad_nrparams"])+ ad_scoread_est2_params[0],':', c = 'darkblue', linewidth = 1)
-plt.savefig(dirfiles+'/Scatterplot_AD_PerformanceAsFunctionOfModelParams_Python.eps')
+plt.barh([6,5,4],[revperc[filenames_CNN.index(CNN_con_mse)]*100, revperc[filenames_CNN.index(CNN_sum_mse)]*100, revperc[filenames_CNN.index(CNN_sub_mse)]*100], color = darkblue, linewidth = 2, edgecolor = 'black')
+plt.barh([3,2,1],[revperc[filenames_CNN.index(CNN_con_ad)]*100, revperc[filenames_CNN.index(CNN_sum_ad)]*100, revperc[filenames_CNN.index(CNN_sub_ad)]*100], color = darkgreen, linewidth = 2, edgecolor = 'black')
+ylabels = ['Concatenate', 'Addition','Subtraction','Concatenate','Addition','Subtraction']
+plt.yticks([6,5,4,3,2,1],ylabels,fontsize=20)
+plt.xticks(fontsize = 20)
 
-## Boxplots of performance per model class
-# MSE score
-plt.figure()
-boxprops1 = dict(linewidth = 2, color='darkblue', facecolor = 'darkblue')
-boxprops2 = dict(linewidth = 2,color='darkblue')
-boxprops3 = dict(linewidth = 2,color= 'black', facecolor = 'black')
-boxprops4 = dict(linewidth = 2)
-medianprops1 = dict(linewidth = 2)
-whiskerprops1 = dict(linewidth = 2,color = 'darkblue')
-whiskerprops2 = dict(linewidth = 2,color = 'black')
-capprops1 = dict(linewidth = 2, color='darkblue')
-capprops2 = dict(linewidth = 2, color='black')
-flierprops1 = dict(markeredgewidth = 2, marker = '+', markeredgecolor='darkblue')
-plt.boxplot(CNN_dict_avgperf["CNN_mse_scoremse"], patch_artist = True, boxprops = boxprops1, whiskerprops = whiskerprops1, capprops = capprops1, medianprops = medianprops1, positions = [1]) 
-plt.boxplot(CNN_dict_avgperf["CNN_ad_scoremse"], boxprops = boxprops2, whiskerprops = whiskerprops1, flierprops = flierprops1, capprops = capprops1, medianprops = medianprops1, positions = [1.5]) 
-plt.boxplot(RNN_dict_avgperf["RNN_mse_scoremse"], patch_artist = True, boxprops = boxprops3, whiskerprops = whiskerprops2, capprops = capprops2, medianprops = medianprops1, positions = [2]) 
-plt.boxplot(RNN_dict_avgperf["RNN_ad_scoremse"], boxprops = boxprops4, whiskerprops = whiskerprops2, capprops = capprops2, positions = [2.5]) 
-plt.ylim(0, 0.25)
-plt.ylabel('MSE score', fontsize = 12, fontweight = 'bold')
-plt.xlabel('Model class', fontsize = 12, fontweight = 'bold')
-plt.grid(color = 'k', linestyle = ':', linewidth = .5, alpha = .5, axis = 'y') 
-plt.xticks([1, 1.5, 2, 2.5], ['CNN\nMSE loss', 'CNN\nAD loss', 'RNN\nMSE loss', 'RNN\nAD loss'])
-plt.savefig(dirfiles+'/Boxplot_MSE_PerformanceAverageModelClass_Python.eps')
-# AD score
-plt.figure()
-boxprops1 = dict(linewidth = 2, color='darkblue', facecolor = 'darkblue')
-boxprops2 = dict(linewidth = 2,color='darkblue')
-boxprops3 = dict(linewidth = 2,color= 'black', facecolor = 'black')
-boxprops4 = dict(linewidth = 2)
-medianprops1 = dict(linewidth = 2)
-whiskerprops1 = dict(linewidth = 2,color = 'darkblue')
-whiskerprops2 = dict(linewidth = 2,color = 'black')
-capprops1 = dict(linewidth = 2, color='darkblue')
-capprops2 = dict(linewidth = 2, color='black')
-flierprops1 = dict(markeredgewidth = 2, marker = '+', markeredgecolor='darkblue')
-plt.boxplot(CNN_dict_avgperf["CNN_mse_scoread"], patch_artist = True, boxprops = boxprops1, whiskerprops = whiskerprops1, capprops = capprops1, medianprops = medianprops1, positions = [1]) 
-plt.boxplot(CNN_dict_avgperf["CNN_ad_scoread"], boxprops = boxprops2, whiskerprops = whiskerprops1, flierprops = flierprops1, capprops = capprops1, medianprops = medianprops1, positions = [1.5]) 
-plt.boxplot(RNN_dict_avgperf["RNN_mse_scoread"], patch_artist = True, boxprops = boxprops3, whiskerprops = whiskerprops2, capprops = capprops2, medianprops = medianprops1, positions = [2]) 
-plt.boxplot(RNN_dict_avgperf["RNN_ad_scoread"], boxprops = boxprops4, whiskerprops = whiskerprops2, capprops = capprops2, positions = [2.5]) 
-plt.ylim(0, 12)
-plt.ylabel('AD score (degrees)', fontsize = 12, fontweight = 'bold')
-plt.xlabel('Model class', fontsize = 12, fontweight = 'bold')
-plt.grid(color = 'k', linestyle = ':', linewidth = .5, alpha = .5, axis = 'y') 
-plt.xticks([1, 1.5, 2, 2.5], ['CNN\nMSE loss', 'CNN\nAD loss', 'RNN\nMSE loss', 'RNN\nAD loss'])
-plt.savefig(dirfiles+'/Boxplot_AD_PerformanceAverageModelClass_Python.eps')
-
-## Scatterplot of MSE score plotted against AD score for CNN and RNN MSE models
-plt.figure()
-plt.scatter(CNN_dict_avgperf["CNN_mse_scoremse"],CNN_dict_avgperf["CNN_mse_scoread"], s = 100, marker = "^", c = darkblue) 
-plt.scatter(RNN_dict_avgperf["RNN_mse_scoremse"],RNN_dict_avgperf["RNN_mse_scoread"], s = 70, marker = "o", c = 'k') 
-plt.xlim(0, 0.06)
-plt.ylim(0, 12)
-plt.legend(['CNN | MSE loss', 'RNN | MSE loss'], fontsize = 10, loc = 'upper left')
-plt.ylabel('AD score (degrees)', fontsize = 12, fontweight = 'bold')
-plt.xlabel('MSE score', fontsize = 12, fontweight = 'bold')
-plt.plot(CNN_dict_avgperf["CNN_mse_scoremse"],(CNN_dict_avgperf["CNN_mse_scoremse"]*cnn_mse_adest2_params[1])+cnn_mse_adest2_params[0],'-', c = 'darkblue')
-plt.plot(RNN_dict_avgperf["RNN_mse_scoremse"],(RNN_dict_avgperf["RNN_mse_scoremse"]*rnn_mse_adest2_params[1])+rnn_mse_adest2_params[0],'-', c = 'black')
-plt.grid(color = 'k', linestyle = ':', linewidth = .5)
-plt.savefig(dirfiles+'/Scatterplot_MSEagainstADscore_for_CNNandRNNwithMSE_Python.eps')
-
-# scatterplot of AD score againnst MSE score for CNN and RNN AD models    
-plt.figure()
-plt.scatter(CNN_dict_avgperf["CNN_ad_scoread"],CNN_dict_avgperf["CNN_ad_scoremse"], s = 100, marker = "^", edgecolors = darkblue, facecolors = 'none', linewidth = 2) 
-plt.scatter(RNN_dict_avgperf["RNN_ad_scoread"],RNN_dict_avgperf["RNN_ad_scoremse"], s = 70, marker = "o", edgecolors = 'k', facecolors = 'none', linewidth = 2) 
-plt.xlim(0, 12)
-plt.ylim(0, 0.2)
-plt.ylabel('MSE score', fontsize = 12, fontweight = 'bold')
-plt.xlabel('AD score (degrees)', fontsize = 12, fontweight = 'bold')
-plt.legend(['CNN | AD loss', 'RNN | AD loss'], fontsize = 10, loc = 'upper left')
-plt.grid(color = 'k', linestyle = ':', linewidth = .5)
-plt.savefig(dirfiles+'/Scatterplot_MSEagainstADscore_for_CNNandRNNwithAD_Python.eps')
-  
-## Plot of the effect of kernel size on MSE or AD score
-# prepare data
-# first model type trained with MSE
-CNN_S_L4_K323264128_mse_1 = CNN_dict_avgperf['CNN_mse_scoremse'][1:5] # get values KS 1x3 until 1x9
-CNN_S_L4_K323264128_mse_1 = np.reshape(CNN_S_L4_K323264128_mse_1,len(CNN_S_L4_K323264128_mse_1,)) 
-CNN_S_L4_K323264128_mse_2 = CNN_dict_avgperf['CNN_mse_scoremse'][0] # get value KS 1x11
-CNN_S_L4_K323264128_mse_2 = np.reshape(CNN_S_L4_K323264128_mse_2,len(CNN_S_L4_K323264128_mse_2,))
-CNN_S_L4_K323264128_mse = np.concatenate((CNN_S_L4_K323264128_mse_1,CNN_S_L4_K323264128_mse_2))
-# second model type trained with MSE
-CNN_S_L4_K32326464_mse_1 = CNN_dict_avgperf['CNN_mse_scoremse'][6:10] # get values KS 1x3 until 1x9
-CNN_S_L4_K32326464_mse_1 = np.reshape(CNN_S_L4_K32326464_mse_1,len(CNN_S_L4_K32326464_mse_1,))
-CNN_S_L4_K32326464_mse_2 = CNN_dict_avgperf['CNN_mse_scoremse'][5] # get values KS 1x3 until 1x9
-CNN_S_L4_K32326464_mse_2 = np.reshape(CNN_S_L4_K32326464_mse_2,len(CNN_S_L4_K32326464_mse_2,))
-CNN_S_L4_K32326464_mse = np.concatenate((CNN_S_L4_K32326464_mse_1,CNN_S_L4_K32326464_mse_2))
-# third model type trained with MSE
-CNN_S_L4_K646464128_mse_1 = CNN_dict_avgperf['CNN_mse_scoremse'][11:]  # get values KS 1x3 until 1x9
-CNN_S_L4_K646464128_mse_1 = np.reshape(CNN_S_L4_K646464128_mse_1,len(CNN_S_L4_K646464128_mse_1,))
-CNN_S_L4_K646464128_mse_2 = CNN_dict_avgperf['CNN_mse_scoremse'][10]  # get values KS 1x3 until 1x9
-CNN_S_L4_K646464128_mse_2 = np.reshape(CNN_S_L4_K646464128_mse_2,len(CNN_S_L4_K646464128_mse_2,))
-CNN_S_L4_K646464128_mse = np.concatenate((CNN_S_L4_K646464128_mse_1,CNN_S_L4_K646464128_mse_2))
-# first model type trained with AD
-CNN_S_L4_K323264128_ad_1 = CNN_dict_avgperf['CNN_ad_scoread'][1:5]# get values KS 1x3 until 1x9
-CNN_S_L4_K323264128_ad_1 = np.reshape(CNN_S_L4_K323264128_ad_1, len(CNN_S_L4_K323264128_ad_1,))
-CNN_S_L4_K323264128_ad_2 = CNN_dict_avgperf['CNN_ad_scoread'][0]# get values KS 1x3 until 1x9
-CNN_S_L4_K323264128_ad_2 = np.reshape(CNN_S_L4_K323264128_ad_2, len(CNN_S_L4_K323264128_ad_2,))
-CNN_S_L4_K323264128_ad = np.concatenate((CNN_S_L4_K323264128_ad_1,CNN_S_L4_K323264128_ad_2))
-# second model type trained with AD
-CNN_S_L4_K32326464_ad_1 = CNN_dict_avgperf['CNN_ad_scoread'][6:10]# get values KS 1x3 until 1x9
-CNN_S_L4_K32326464_ad_1 = np.reshape(CNN_S_L4_K32326464_ad_1,len(CNN_S_L4_K32326464_ad_1,))
-CNN_S_L4_K32326464_ad_2 = CNN_dict_avgperf['CNN_ad_scoread'][5]# get values KS 1x3 until 1x9
-CNN_S_L4_K32326464_ad_2 = np.reshape(CNN_S_L4_K32326464_ad_2,len(CNN_S_L4_K32326464_ad_2,))
-CNN_S_L4_K32326464_ad = np.concatenate((CNN_S_L4_K32326464_ad_1,CNN_S_L4_K32326464_ad_2))
-# third model type trained with AD
-CNN_S_L4_K646464128_ad_1 = CNN_dict_avgperf['CNN_ad_scoread'][11:]  # get values KS 1x3 until 1x9
-CNN_S_L4_K646464128_ad_1 = np.reshape(CNN_S_L4_K646464128_ad_1,len(CNN_S_L4_K646464128_ad_1,))
-CNN_S_L4_K646464128_ad_2 = CNN_dict_avgperf['CNN_ad_scoread'][10]  # get values KS 1x3 until 1x9
-CNN_S_L4_K646464128_ad_2 = np.reshape(CNN_S_L4_K646464128_ad_2,len(CNN_S_L4_K646464128_ad_2,))
-CNN_S_L4_K646464128_ad = np.concatenate((CNN_S_L4_K646464128_ad_1,CNN_S_L4_K646464128_ad_2))
-
-# plot the data
-plt.figure()
-plt.plot(CNN_S_L4_K32326464_mse, linestyle = ':', marker = 'o', color = 'black')
-plt.plot(CNN_S_L4_K323264128_mse, linestyle = '--', marker = 'o', color = 'black')
-plt.plot(CNN_S_L4_K646464128_mse, marker = 'o', color = 'black')
-plotavg_mse = np.mean(np.concatenate(([CNN_S_L4_K323264128_mse],[CNN_S_L4_K32326464_mse],[CNN_S_L4_K646464128_mse])),axis = 0)
-plt.plot(plotavg_mse, marker = 'o', markersize = 7, color = 'red', linewidth = 3)
-plt.grid(color = 'k', linestyle = ':', linewidth = .5)
-plt.ylim(0,.05)
-plt.xlabel('Kernel size', fontsize = 12, fontweight = 'bold')
-plt.xticks([0,1,2,3,4],['1x3','1x5','1x7','1x9','1x11'])
-plt.ylabel('MSE', fontsize = 12, fontweight = 'bold')
-plt.legend(['Kernels per layer: 32-32-64-64', 'Kernels per layer: 32-32-64-128', 'Kernels per layer: 64-64-64-128', 'Average across model types'], fontsize = 10, loc = 'lower right')
-plt.savefig(dirfiles+'/LinePlot_EffectKernelSize_CNNmodels_withMSE_Python.eps')
-
-plt.figure()
-plt.plot(CNN_S_L4_K32326464_ad, linestyle = ':', marker = 'o', color = 'black')
-plt.plot(CNN_S_L4_K323264128_ad, linestyle = '--', marker = 'o', color = 'black')
-plt.plot(CNN_S_L4_K646464128_ad, marker = 'o', color = 'black')
-plotavg_ad = np.mean(np.concatenate(([CNN_S_L4_K323264128_ad],[CNN_S_L4_K32326464_ad],[CNN_S_L4_K646464128_ad])),axis = 0)
-plt.plot(plotavg_ad, marker = 'o', markersize = 7, color = 'red', linewidth = 3)
-plt.grid(color = 'k', linestyle = ':', linewidth = .5)
-plt.ylim(0,.05)
-plt.xlabel('Kernel size', fontsize = 12, fontweight = 'bold')
-plt.xticks([0,1,2,3,4],['1x3','1x5','1x7','1x9','1x11'])
-plt.ylabel('AD (degrees)', fontsize = 12, fontweight = 'bold')
-plt.ylim(0,12)
-plt.legend(['Kernels per layer: 32-32-64-64', 'Kernels per layer: 32-32-64-128', 'Kernels per layer: 64-64-64-128', 'Average across model types'], fontsize = 10, loc = 'lower right')
-plt.savefig(dirfiles+'/LinePlot_EffectKernelSize_CNNmodels_withAD_Python.eps')
+### polar plot of angular error with standard deviation
+# for MSE model, concatenate 
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az'][filenames_CNN.index(CNN_con_mse),]
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az'][filenames_CNN.index(CNN_con_mse),]
+radii_mse_1 = mean_ad
+radii_mse_2 = np.zeros(1)
+radii_mse_2[0] = mean_ad[0]
+radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
+err_mse_1 = mean_sem
+err_mse_2 = np.zeros(1)
+err_mse_2[0] = mean_sem[0]
+err_mse =  np.concatenate((err_mse_1, err_mse_2))
+plt.figure(figsize = (3,3))
+ax = plt.subplot(111, projection='polar')
+theta_1 = azimuthrange
+theta_2 = np.zeros(1)
+theta_2[0] = azimuthrange[0]
+theta = np.concatenate((theta_1, theta_2))
+ax.plot(np.radians(theta),radii_mse, color = darkblue, linewidth = 3)
+ax.fill_between(np.radians(theta),radii_mse - np.radians(err_mse), radii_mse+np.radians(err_mse), color= darkblue, alpha = 0.3)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+plt.grid(linestyle = ':', linewidth = 1)
+ax.set_ylim(0,10)
+ax.set_yticks(np.arange(0,10,2))
+plt.title('MSE concatenation')
+# for MSE model, addition
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az'][filenames_CNN.index(CNN_sum_mse),]
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az'][filenames_CNN.index(CNN_sum_mse),]
+radii_mse_1 = mean_ad
+radii_mse_2 = np.zeros(1)
+radii_mse_2[0] = mean_ad[0]
+radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
+err_mse_1 = mean_sem
+err_mse_2 = np.zeros(1)
+err_mse_2[0] = mean_sem[0]
+err_mse =  np.concatenate((err_mse_1, err_mse_2))
+plt.figure(figsize = (3,3))
+ax = plt.subplot(111, projection='polar')
+theta_1 = azimuthrange
+theta_2 = np.zeros(1)
+theta_2[0] = azimuthrange[0]
+theta = np.concatenate((theta_1, theta_2))
+ax.plot(np.radians(theta),radii_mse, color = darkblue, linewidth = 3)
+ax.fill_between(np.radians(theta),radii_mse - np.radians(err_mse), radii_mse+np.radians(err_mse), color= darkblue, alpha = 0.3)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+plt.grid(linestyle = ':', linewidth = 1)
+ax.set_ylim(0,10)
+ax.set_yticks(np.arange(0,10,2))
+plt.title('MSE addition')
+# for MSE model, subtraction
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az'][filenames_CNN.index(CNN_sub_mse),]
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az'][filenames_CNN.index(CNN_sub_mse),]
+radii_mse_1 = mean_ad
+radii_mse_2 = np.zeros(1)
+radii_mse_2[0] = mean_ad[0]
+radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
+err_mse_1 = mean_sem
+err_mse_2 = np.zeros(1)
+err_mse_2[0] = mean_sem[0]
+err_mse =  np.concatenate((err_mse_1, err_mse_2))
+plt.figure(figsize = (3,3))
+ax = plt.subplot(111, projection='polar')
+theta_1 = azimuthrange
+theta_2 = np.zeros(1)
+theta_2[0] = azimuthrange[0]
+theta = np.concatenate((theta_1, theta_2))
+ax.plot(np.radians(theta),radii_mse, color = darkblue, linewidth = 3)
+ax.fill_between(np.radians(theta),radii_mse - np.radians(err_mse), radii_mse+np.radians(err_mse), color= darkblue, alpha = 0.3)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+plt.grid(linestyle = ':', linewidth = 1)
+ax.set_ylim(0,10)
+ax.set_yticks(np.arange(0,10,2))
+plt.title('MSE subtraction')
+# for AD model, concatenate 
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az'][filenames_CNN.index(CNN_con_ad),]
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az'][filenames_CNN.index(CNN_con_ad),]
+radii_mse_1 = mean_ad
+radii_mse_2 = np.zeros(1)
+radii_mse_2[0] = mean_ad[0]
+radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
+err_mse_1 = mean_sem
+err_mse_2 = np.zeros(1)
+err_mse_2[0] = mean_sem[0]
+err_mse =  np.concatenate((err_mse_1, err_mse_2))
+plt.figure(figsize = (3,3))
+ax = plt.subplot(111, projection='polar')
+theta_1 = azimuthrange
+theta_2 = np.zeros(1)
+theta_2[0] = azimuthrange[0]
+theta = np.concatenate((theta_1, theta_2))
+ax.plot(np.radians(theta),radii_mse, color = darkgreen, linewidth = 3)
+ax.fill_between(np.radians(theta),radii_mse - np.radians(err_mse), radii_mse+np.radians(err_mse), color= darkgreen, alpha = 0.3)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+plt.grid(linestyle = ':', linewidth = 1)
+ax.set_ylim(0,10)
+ax.set_yticks(np.arange(0,10,2))
+plt.title('AD concatenation')
+# for AD model, addition
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az'][filenames_CNN.index(CNN_sum_ad),]
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az'][filenames_CNN.index(CNN_sum_ad),]
+radii_mse_1 = mean_ad
+radii_mse_2 = np.zeros(1)
+radii_mse_2[0] = mean_ad[0]
+radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
+err_mse_1 = mean_sem
+err_mse_2 = np.zeros(1)
+err_mse_2[0] = mean_sem[0]
+err_mse =  np.concatenate((err_mse_1, err_mse_2))
+plt.figure(figsize = (3,3))
+ax = plt.subplot(111, projection='polar')
+theta_1 = azimuthrange
+theta_2 = np.zeros(1)
+theta_2[0] = azimuthrange[0]
+theta = np.concatenate((theta_1, theta_2))
+ax.plot(np.radians(theta),radii_mse, color = darkgreen, linewidth = 3)
+ax.fill_between(np.radians(theta),radii_mse - np.radians(err_mse), radii_mse+np.radians(err_mse), color= darkgreen, alpha = 0.3)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+plt.grid(linestyle = ':', linewidth = 1)
+ax.set_ylim(0,10)
+ax.set_yticks(np.arange(0,10,2))
+plt.title('AD addition')
+# for AD model, subtraction
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az'][filenames_CNN.index(CNN_sub_ad),]
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az'][filenames_CNN.index(CNN_sub_ad),]
+radii_mse_1 = mean_ad
+radii_mse_2 = np.zeros(1)
+radii_mse_2[0] = mean_ad[0]
+radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
+err_mse_1 = mean_sem
+err_mse_2 = np.zeros(1)
+err_mse_2[0] = mean_sem[0]
+err_mse =  np.concatenate((err_mse_1, err_mse_2))
+plt.figure(figsize = (3,3))
+ax = plt.subplot(111, projection='polar')
+theta_1 = azimuthrange
+theta_2 = np.zeros(1)
+theta_2[0] = azimuthrange[0]
+theta = np.concatenate((theta_1, theta_2))
+ax.plot(np.radians(theta),radii_mse, color = darkgreen, linewidth = 3)
+ax.set_ylim(0,10)
+ax.set_yticks(np.arange(0,10,2))
+ax.fill_between(np.radians(theta),radii_mse - np.radians(err_mse), radii_mse+np.radians(err_mse), color= darkgreen, alpha = 0.3)
+ax.set_theta_zero_location("N")
+ax.set_theta_direction(-1)
+plt.grid(linestyle = ':', linewidth = 1)
+plt.title('AD subtraction')
 
 
-## Boxplots of percentage of front-back reversals per model class
+### line plot of MSE
+# retrieve data
+mean_mse = CNN_dict_preds.item()['mean_mse_az']
+sem_mse = CNN_dict_preds.item()['sem_mse_az']
+# plot data for MSE loss
 plt.figure()
-boxprops1 = dict(linewidth = 2, color='darkblue', facecolor = 'darkblue')
-boxprops2 = dict(linewidth = 2,color='darkblue')
-boxprops3 = dict(linewidth = 2,color= 'black', facecolor = 'black')
-boxprops4 = dict(linewidth = 2)
-medianprops1 = dict(linewidth = 2)
-whiskerprops1 = dict(linewidth = 2,color = 'darkblue')
-whiskerprops2 = dict(linewidth = 2,color = 'black')
-capprops1 = dict(linewidth = 2, color='darkblue')
-capprops2 = dict(linewidth = 2, color='black')
-flierprops1 = dict(markeredgewidth = 2, marker = '+', markeredgecolor='darkblue')
-flierprops2 = dict(markeredgewidth = 2, marker = '+', markeredgecolor='black')
-plt.boxplot(CNN_dict_preds_revcorr['reversals_percentage'][1::2], patch_artist = True, boxprops = boxprops1, whiskerprops = whiskerprops1, flierprops = flierprops1, capprops = capprops1, medianprops = medianprops1, positions = [1]) 
-plt.boxplot(CNN_dict_preds_revcorr['reversals_percentage'][0::2], boxprops = boxprops2, whiskerprops = whiskerprops1, flierprops = flierprops1, capprops = capprops1, medianprops = medianprops1, positions = [1.5]) 
-plt.boxplot(RNN_dict_preds_revcorr['reversals_percentage_RNN'][1::2], patch_artist = True, boxprops = boxprops3, whiskerprops = whiskerprops2, capprops = capprops2, medianprops = medianprops1, positions = [2]) 
-plt.boxplot(RNN_dict_preds_revcorr['reversals_percentage_RNN'][0::2], boxprops = boxprops4, whiskerprops = whiskerprops2, capprops = capprops2, flierprops = flierprops2, positions = [2.5]) 
-plt.ylim(0, 0.025)
-plt.ylabel('Front-back reversals (%)', fontsize = 12, fontweight = 'bold')
-plt.xlabel('Model class', fontsize = 12, fontweight = 'bold')
-plt.grid(color = 'k', linestyle = ':', linewidth = .5, alpha = .5, axis = 'y') 
-plt.xticks([1, 1.5, 2, 2.5], ['CNN\nMSE loss', 'CNN\nAD loss', 'RNN\nMSE loss', 'RNN\nAD loss'])
-plt.savefig(dirfiles+'/Boxplot_FrontBackReversals_perModelClass_Python.eps')
+plt.errorbar(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_con_mse)],17),yerr = np.roll(sem_mse[filenames_CNN.index(CNN_con_mse)],17),  capsize = 2, linewidth = 2, fmt = 'none', color = darkblue)
+plt.plot(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_con_mse)],17), color = darkblue,markersize = 10, linewidth = 4,  marker = 's')
+plt.errorbar(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sum_mse)],17),yerr = np.roll(sem_mse[filenames_CNN.index(CNN_sum_mse)],17), capsize = 2, linewidth = 2, linestyle = '--', fmt = 'none', color = darkblue)
+plt.plot(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sum_mse)],17), color = darkblue,  marker = '^',markersize = 10, linewidth = 4, linestyle = '--')
+plt.errorbar(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sub_mse)],17),yerr = np.roll(sem_mse[filenames_CNN.index(CNN_sub_mse)],17), capsize = 2, linewidth = 2, linestyle = ':', fmt = 'none', color = darkblue)
+plt.plot(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sub_mse)],17), color = darkblue, marker = 'o',markersize = 10, linewidth = 4, linestyle = ':')
+plt.ylim(0,0.35)
+plt.legend(['concatenation','addition','subtraction'], fontsize = 20)
+# plot data for AD loss
+plt.figure()
+plt.errorbar(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_con_ad)],17),yerr = np.roll(sem_mse[filenames_CNN.index(CNN_con_ad)],17),  capsize = 2, linewidth = 2, fmt = 'none', color = darkgreen)
+plt.plot(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_con_ad)],17), color = darkgreen, markersize = 10,linewidth = 4,  marker = 's')
+plt.errorbar(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sum_ad)],17),yerr = np.roll(sem_mse[filenames_CNN.index(CNN_sum_ad)],17), capsize = 2, linewidth = 2, linestyle = '--', fmt = 'none', color = darkgreen)
+plt.plot(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sum_ad)],17), color = darkgreen,  marker = '^', markersize = 10,linewidth = 4, linestyle = '--')
+plt.errorbar(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sub_ad)],17),yerr = np.roll(sem_mse[filenames_CNN.index(CNN_sub_ad)],17), capsize = 2, linewidth = 2, linestyle = ':', fmt = 'none', color = darkgreen)
+plt.plot(np.linspace(1,36,36),np.roll(mean_mse[filenames_CNN.index(CNN_sub_ad)],17), color = darkgreen, marker = 'o', markersize = 10, linewidth = 4, linestyle = ':')
+plt.ylim(0,0.35)
+plt.legend(['concatenation','addition','subtraction'], fontsize = 20)
+
+### this is to create the rectangular plots with predictions
+# retrieve data
+CNN_preds_con_mse = CNN_dict_preds.item()['models_predictions_CNN_xy'][filenames_CNN.index(CNN_con_mse)]
+CNN_preds_sum_mse = CNN_dict_preds.item()['models_predictions_CNN_xy'][filenames_CNN.index(CNN_sum_mse)]
+CNN_preds_sub_mse = CNN_dict_preds.item()['models_predictions_CNN_xy'][filenames_CNN.index(CNN_sub_mse)]
+CNN_preds_con_ad = CNN_dict_preds.item()['models_predictions_CNN_xy'][filenames_CNN.index(CNN_con_ad)]
+CNN_preds_sum_ad = CNN_dict_preds.item()['models_predictions_CNN_xy'][filenames_CNN.index(CNN_sum_ad)]
+CNN_preds_sub_ad = CNN_dict_preds.item()['models_predictions_CNN_xy'][filenames_CNN.index(CNN_sub_ad)]
+names_val_angle = CNN_dict_preds.item()['names_val_angle']
+labels_val = CNN_dict_preds.item()['labels_val']
+
+# specifications
+anglecheck1 = 0
+color1 = (246/255, 253/255, 0/255)
+anglecheck11 = 30
+color11 = (255/255,207/255,0/255)
+anglecheck111 = 60
+color111 = (255/255,154/255,0/255)
+anglecheck2 = 90
+color2 = (255/255, 89/255, 0/255)
+anglecheck22 = 120
+color22 = (255/255,0/255,30/255)
+anglecheck222 = 150
+color222 = (255/255,0/255,130/255)
+anglecheck3 = 180
+color3 = (227/255, 0/255, 255/255)
+anglecheck33 = 210
+color33 = (151/255,0/255,255/255)
+anglecheck333 = 240
+color333 = (103/255,0/255,255/255)
+anglecheck4 = 270
+color4 = (0/255, 51/255, 255/255)
+anglecheck44 = 300
+color44 = (0/255, 233/255, 255/255)
+anglecheck444 = 330
+color444 = (0/255, 255/255, 84/255)
+# figure con mse
+plt.figure()
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck1),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck1),1],color=color1, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck1),0],labels_val[np.squeeze(names_val_angle==anglecheck1),1],color=color1, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck2),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck2),1],color=color2, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck2),0],labels_val[np.squeeze(names_val_angle==anglecheck2),1],color=color2, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck3),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck3),1],color=color3, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck3),0],labels_val[np.squeeze(names_val_angle==anglecheck3),1],color=color3, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck4),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck4),1],color=color4, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck4),0],labels_val[np.squeeze(names_val_angle==anglecheck4),1],color=color4, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck11),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck11),1],color=color11, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck11),0],labels_val[np.squeeze(names_val_angle==anglecheck11),1],color=color11, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck22),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck22),1],color=color22, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck22),0],labels_val[np.squeeze(names_val_angle==anglecheck22),1],color=color22, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck33),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck33),1],color=color33, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck33),0],labels_val[np.squeeze(names_val_angle==anglecheck33),1],color=color33, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck44),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck44),1],color=color44, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck44),0],labels_val[np.squeeze(names_val_angle==anglecheck44),1],color=color44, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck111),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck111),1],color=color111, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck111),0],labels_val[np.squeeze(names_val_angle==anglecheck111),1],color=color111, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck222),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck222),1],color=color222, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck222),0],labels_val[np.squeeze(names_val_angle==anglecheck222),1],color=color222, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck333),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck333),1],color=color333, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck333),0],labels_val[np.squeeze(names_val_angle==anglecheck333),1],color=color333, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck444),0],CNN_preds_con_mse[np.squeeze(names_val_angle==anglecheck444),1],color=color444, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck444),0],labels_val[np.squeeze(names_val_angle==anglecheck444),1],color=color444, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.axis('square')
+plt.xlabel('x-coordinate',fontsize=15)
+plt.ylabel('y-coordinate',fontsize=15)
+plt.title('Location predictions CNN con mse',fontweight = 'bold')
+plt.axis([-1.1, 1.1, -1.1, 1.1])
+plt.grid(color = 'k', linestyle = ':', linewidth = 1, alpha= .5)
+# figure sum mse
+plt.figure()
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck1),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck1),1],color=color1, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck1),0],labels_val[np.squeeze(names_val_angle==anglecheck1),1],color=color1, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck2),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck2),1],color=color2, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck2),0],labels_val[np.squeeze(names_val_angle==anglecheck2),1],color=color2, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck3),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck3),1],color=color3, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck3),0],labels_val[np.squeeze(names_val_angle==anglecheck3),1],color=color3, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck4),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck4),1],color=color4, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck4),0],labels_val[np.squeeze(names_val_angle==anglecheck4),1],color=color4, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck11),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck11),1],color=color11, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck11),0],labels_val[np.squeeze(names_val_angle==anglecheck11),1],color=color11, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck22),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck22),1],color=color22, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck22),0],labels_val[np.squeeze(names_val_angle==anglecheck22),1],color=color22, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck33),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck33),1],color=color33, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck33),0],labels_val[np.squeeze(names_val_angle==anglecheck33),1],color=color33, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck44),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck44),1],color=color44, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck44),0],labels_val[np.squeeze(names_val_angle==anglecheck44),1],color=color44, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck111),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck111),1],color=color111, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck111),0],labels_val[np.squeeze(names_val_angle==anglecheck111),1],color=color111, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck222),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck222),1],color=color222, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck222),0],labels_val[np.squeeze(names_val_angle==anglecheck222),1],color=color222, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck333),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck333),1],color=color333, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck333),0],labels_val[np.squeeze(names_val_angle==anglecheck333),1],color=color333, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck444),0],CNN_preds_sum_mse[np.squeeze(names_val_angle==anglecheck444),1],color=color444, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck444),0],labels_val[np.squeeze(names_val_angle==anglecheck444),1],color=color444, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.axis('square')
+plt.xlabel('x-coordinate',fontsize=15)
+plt.ylabel('y-coordinate',fontsize=15)
+plt.title('Location predictions CNN sum mse',fontweight = 'bold')
+plt.axis([-1.1, 1.1, -1.1, 1.1])
+plt.grid(color = 'k', linestyle = ':', linewidth = 1, alpha= .5)
+# figure sub mse
+plt.figure()
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck1),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck1),1],color=color1, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck1),0],labels_val[np.squeeze(names_val_angle==anglecheck1),1],color=color1, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck2),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck2),1],color=color2, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck2),0],labels_val[np.squeeze(names_val_angle==anglecheck2),1],color=color2, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck3),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck3),1],color=color3, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck3),0],labels_val[np.squeeze(names_val_angle==anglecheck3),1],color=color3, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck4),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck4),1],color=color4, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck4),0],labels_val[np.squeeze(names_val_angle==anglecheck4),1],color=color4, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck11),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck11),1],color=color11, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck11),0],labels_val[np.squeeze(names_val_angle==anglecheck11),1],color=color11, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck22),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck22),1],color=color22, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck22),0],labels_val[np.squeeze(names_val_angle==anglecheck22),1],color=color22, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck33),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck33),1],color=color33, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck33),0],labels_val[np.squeeze(names_val_angle==anglecheck33),1],color=color33, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck44),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck44),1],color=color44, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck44),0],labels_val[np.squeeze(names_val_angle==anglecheck44),1],color=color44, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck111),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck111),1],color=color111, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck111),0],labels_val[np.squeeze(names_val_angle==anglecheck111),1],color=color111, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck222),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck222),1],color=color222, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck222),0],labels_val[np.squeeze(names_val_angle==anglecheck222),1],color=color222, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck333),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck333),1],color=color333, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck333),0],labels_val[np.squeeze(names_val_angle==anglecheck333),1],color=color333, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck444),0],CNN_preds_sub_mse[np.squeeze(names_val_angle==anglecheck444),1],color=color444, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck444),0],labels_val[np.squeeze(names_val_angle==anglecheck444),1],color=color444, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.axis('square')
+plt.xlabel('x-coordinate',fontsize=15)
+plt.ylabel('y-coordinate',fontsize=15)
+plt.title('Location predictions CNN sub mse',fontweight = 'bold')
+plt.axis([-1.1, 1.1, -1.1, 1.1])
+plt.grid(color = 'k', linestyle = ':', linewidth = 1, alpha= .5)
+# figure con ad
+plt.figure()
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck1),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck1),1],color=color1, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck1),0],labels_val[np.squeeze(names_val_angle==anglecheck1),1],color=color1, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck2),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck2),1],color=color2, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck2),0],labels_val[np.squeeze(names_val_angle==anglecheck2),1],color=color2, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck3),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck3),1],color=color3, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck3),0],labels_val[np.squeeze(names_val_angle==anglecheck3),1],color=color3, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck4),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck4),1],color=color4, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck4),0],labels_val[np.squeeze(names_val_angle==anglecheck4),1],color=color4, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck11),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck11),1],color=color11, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck11),0],labels_val[np.squeeze(names_val_angle==anglecheck11),1],color=color11, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck22),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck22),1],color=color22, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck22),0],labels_val[np.squeeze(names_val_angle==anglecheck22),1],color=color22, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck33),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck33),1],color=color33, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck33),0],labels_val[np.squeeze(names_val_angle==anglecheck33),1],color=color33, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck44),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck44),1],color=color44, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck44),0],labels_val[np.squeeze(names_val_angle==anglecheck44),1],color=color44, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck111),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck111),1],color=color111, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck111),0],labels_val[np.squeeze(names_val_angle==anglecheck111),1],color=color111, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck222),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck222),1],color=color222, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck222),0],labels_val[np.squeeze(names_val_angle==anglecheck222),1],color=color222, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck333),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck333),1],color=color333, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck333),0],labels_val[np.squeeze(names_val_angle==anglecheck333),1],color=color333, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck444),0],CNN_preds_con_ad[np.squeeze(names_val_angle==anglecheck444),1],color=color444, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck444),0],labels_val[np.squeeze(names_val_angle==anglecheck444),1],color=color444, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.axis('square')
+plt.xlabel('x-coordinate',fontsize=15)
+plt.ylabel('y-coordinate',fontsize=15)
+plt.title('Location predictions CNN con ad',fontweight = 'bold')
+plt.axis([-1.1, 1.1, -1.1, 1.1])
+plt.grid(color = 'k', linestyle = ':', linewidth = 1, alpha= .5)
+# figure sum ad
+plt.figure()
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck1),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck1),1],color=color1, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck1),0],labels_val[np.squeeze(names_val_angle==anglecheck1),1],color=color1, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck2),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck2),1],color=color2, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck2),0],labels_val[np.squeeze(names_val_angle==anglecheck2),1],color=color2, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck3),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck3),1],color=color3, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck3),0],labels_val[np.squeeze(names_val_angle==anglecheck3),1],color=color3, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck4),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck4),1],color=color4, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck4),0],labels_val[np.squeeze(names_val_angle==anglecheck4),1],color=color4, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck11),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck11),1],color=color11, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck11),0],labels_val[np.squeeze(names_val_angle==anglecheck11),1],color=color11, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck22),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck22),1],color=color22, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck22),0],labels_val[np.squeeze(names_val_angle==anglecheck22),1],color=color22, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck33),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck33),1],color=color33, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck33),0],labels_val[np.squeeze(names_val_angle==anglecheck33),1],color=color33, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck44),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck44),1],color=color44, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck44),0],labels_val[np.squeeze(names_val_angle==anglecheck44),1],color=color44, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck111),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck111),1],color=color111, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck111),0],labels_val[np.squeeze(names_val_angle==anglecheck111),1],color=color111, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck222),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck222),1],color=color222, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck222),0],labels_val[np.squeeze(names_val_angle==anglecheck222),1],color=color222, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck333),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck333),1],color=color333, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck333),0],labels_val[np.squeeze(names_val_angle==anglecheck333),1],color=color333, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck444),0],CNN_preds_sum_ad[np.squeeze(names_val_angle==anglecheck444),1],color=color444, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck444),0],labels_val[np.squeeze(names_val_angle==anglecheck444),1],color=color444, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.axis('square')
+plt.xlabel('x-coordinate',fontsize=15)
+plt.ylabel('y-coordinate',fontsize=15)
+plt.title('Location predictions CNN sum ad',fontweight = 'bold')
+plt.axis([-1.1, 1.1, -1.1, 1.1])
+plt.grid(color = 'k', linestyle = ':', linewidth = 1, alpha= .5)
+# figure sub ad
+plt.figure()
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck1),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck1),1],color=color1, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck1),0],labels_val[np.squeeze(names_val_angle==anglecheck1),1],color=color1, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck2),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck2),1],color=color2, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck2),0],labels_val[np.squeeze(names_val_angle==anglecheck2),1],color=color2, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck3),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck3),1],color=color3, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck3),0],labels_val[np.squeeze(names_val_angle==anglecheck3),1],color=color3, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck4),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck4),1],color=color4, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck4),0],labels_val[np.squeeze(names_val_angle==anglecheck4),1],color=color4, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck11),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck11),1],color=color11, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck11),0],labels_val[np.squeeze(names_val_angle==anglecheck11),1],color=color11, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck22),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck22),1],color=color22, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck22),0],labels_val[np.squeeze(names_val_angle==anglecheck22),1],color=color22, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck33),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck33),1],color=color33, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck33),0],labels_val[np.squeeze(names_val_angle==anglecheck33),1],color=color33, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck44),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck44),1],color=color44, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck44),0],labels_val[np.squeeze(names_val_angle==anglecheck44),1],color=color44, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck111),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck111),1],color=color111, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck111),0],labels_val[np.squeeze(names_val_angle==anglecheck111),1],color=color111, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck222),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck222),1],color=color222, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck222),0],labels_val[np.squeeze(names_val_angle==anglecheck222),1],color=color222, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck333),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck333),1],color=color333, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck333),0],labels_val[np.squeeze(names_val_angle==anglecheck333),1],color=color333, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=4)
+plt.scatter(CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck444),0],CNN_preds_sub_ad[np.squeeze(names_val_angle==anglecheck444),1],color=color444, s = 200, edgecolors = "k", linewidth = 1, alpha=0.4)
+plt.scatter(labels_val[np.squeeze(names_val_angle==anglecheck444),0],labels_val[np.squeeze(names_val_angle==anglecheck444),1],color=color444, alpha=.5, marker = "X",s=600, edgecolors="k",linewidth=2)
+plt.axis('square')
+plt.xlabel('x-coordinate',fontsize=15)
+plt.ylabel('y-coordinate',fontsize=15)
+plt.title('Location predictions CNN sub ad',fontweight = 'bold')
+plt.axis([-1.1, 1.1, -1.1, 1.1])
+plt.grid(color = 'k', linestyle = ':', linewidth = 1, alpha= .5)
+
+
+
+
+
+
+
+
+
+
+
+#------------------------------------------------------------------------------
+# Statistics
+#------------------------------------------------------------------------------
+# paired t-test for difference in error scores locations on the left vs locations on the right
+# get data
+mean_mse = CNN_dict_preds.item()['mean_mse_az']
+sem_mse = CNN_dict_preds.item()['sem_mse_az']
+mean_ad = CNN_dict_preds.item()['mean_cosdistdeg_az']
+mean_sem = CNN_dict_preds.item()['stdev_cosdistdeg_az']
+# for mse score
+CNN_con_mse_Tmse = scipy.stats.ttest_rel(mean_mse[filenames_CNN.index(CNN_con_mse),1:18],mean_mse[filenames_CNN.index(CNN_con_mse),19:36])
+CNN_sum_mse_Tmse = scipy.stats.ttest_rel(mean_mse[filenames_CNN.index(CNN_sum_mse),1:18],mean_mse[filenames_CNN.index(CNN_sum_mse),19:36])
+CNN_sub_mse_Tmse = scipy.stats.ttest_rel(mean_mse[filenames_CNN.index(CNN_sub_mse),1:18],mean_mse[filenames_CNN.index(CNN_sub_mse),19:36])
+CNN_con_ad_Tmse = scipy.stats.ttest_rel(mean_mse[filenames_CNN.index(CNN_con_ad),1:18],mean_mse[filenames_CNN.index(CNN_con_ad),19:36])
+CNN_sum_ad_Tmse = scipy.stats.ttest_rel(mean_mse[filenames_CNN.index(CNN_sum_ad),1:18],mean_mse[filenames_CNN.index(CNN_sum_ad),19:36])
+CNN_sub_ad_Tmse = scipy.stats.ttest_rel(mean_mse[filenames_CNN.index(CNN_sub_ad),1:18],mean_mse[filenames_CNN.index(CNN_sub_ad),19:36])
+# correct p values for multiple comparisons
+pvalcorr_Tmse = statsmodels.stats.multitest.multipletests([CNN_con_mse_Tmse[1],CNN_sum_mse_Tmse[1],CNN_sub_mse_Tmse[1],CNN_con_ad_Tmse[1],CNN_sum_ad_Tmse[1],CNN_sub_ad_Tmse[1]], method = 'fdr_bh')
+
+# for ad score
+CNN_con_mse_Tad = scipy.stats.ttest_rel(mean_ad[filenames_CNN.index(CNN_con_mse),1:18],mean_ad[filenames_CNN.index(CNN_con_mse),19:36])
+CNN_sum_mse_Tad = scipy.stats.ttest_rel(mean_ad[filenames_CNN.index(CNN_sum_mse),1:18],mean_ad[filenames_CNN.index(CNN_sum_mse),19:36])
+CNN_sub_mse_Tad = scipy.stats.ttest_rel(mean_ad[filenames_CNN.index(CNN_sub_mse),1:18],mean_ad[filenames_CNN.index(CNN_sub_mse),19:36])
+CNN_con_ad_Tad = scipy.stats.ttest_rel(mean_ad[filenames_CNN.index(CNN_con_ad),1:18],mean_ad[filenames_CNN.index(CNN_con_ad),19:36])
+CNN_sum_ad_Tad = scipy.stats.ttest_rel(mean_ad[filenames_CNN.index(CNN_sum_ad),1:18],mean_ad[filenames_CNN.index(CNN_sum_ad),19:36])
+CNN_sub_ad_Tad = scipy.stats.ttest_rel(mean_ad[filenames_CNN.index(CNN_sub_ad),1:18],mean_ad[filenames_CNN.index(CNN_sub_ad),19:36])
+# correct p values for multiple comparisons
+pvalcorr_Tad = statsmodels.stats.multitest.multipletests([CNN_con_mse_Tad[1],CNN_sum_mse_Tad[1],CNN_sub_mse_Tad[1],CNN_con_ad_Tad[1],CNN_sum_ad_Tad[1],CNN_sub_ad_Tad[1]], method = 'fdr_bh')
+
+# create bar graph of this
+# for ad error
+righterrors = [np.mean(mean_ad[filenames_CNN.index(CNN_con_mse),1:18]),np.mean(mean_ad[filenames_CNN.index(CNN_sum_mse),1:18]),np.mean(mean_ad[filenames_CNN.index(CNN_sub_mse),1:18]),np.mean(mean_ad[filenames_CNN.index(CNN_con_ad),1:18]),np.mean(mean_ad[filenames_CNN.index(CNN_sum_ad),1:18]),np.mean(mean_ad[filenames_CNN.index(CNN_sub_ad),1:18])]
+lefterrors = [np.mean(mean_ad[filenames_CNN.index(CNN_con_mse),19:36]),np.mean(mean_ad[filenames_CNN.index(CNN_sum_mse),19:36]),np.mean(mean_ad[filenames_CNN.index(CNN_sub_mse),19:36]),np.mean(mean_ad[filenames_CNN.index(CNN_con_ad),19:36]),np.mean(mean_ad[filenames_CNN.index(CNN_sum_ad),19:36]),np.mean(mean_ad[filenames_CNN.index(CNN_sub_ad),19:36])]
+righterror_sem = [np.std(mean_ad[filenames_CNN.index(CNN_con_mse),1:18])/17,np.std(mean_ad[filenames_CNN.index(CNN_sum_mse),1:18])/17,np.std(mean_ad[filenames_CNN.index(CNN_sub_mse),1:18])/17,np.std(mean_ad[filenames_CNN.index(CNN_con_ad),1:18])/17,np.std(mean_ad[filenames_CNN.index(CNN_sum_ad),1:18])/17,np.std(mean_ad[filenames_CNN.index(CNN_sub_ad),1:18])/17]
+lefterror_sem = [np.std(mean_ad[filenames_CNN.index(CNN_con_mse),19:36])/17,np.std(mean_ad[filenames_CNN.index(CNN_sum_mse),19:36])/17,np.std(mean_ad[filenames_CNN.index(CNN_sub_mse),19:36])/17,np.std(mean_ad[filenames_CNN.index(CNN_con_ad),19:36])/17,np.std(mean_ad[filenames_CNN.index(CNN_sum_ad),19:36])/17,np.std(mean_ad[filenames_CNN.index(CNN_sub_ad),19:36])/17]
+labels = ['con','sum','sub','con','sum','sub']
+x = np.arange(len(labels))  # the label locations
+width = 0.35  # the width of the bars
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width/2, lefterrors, width, label='Left', linewidth = 2,edgecolor = 'black')
+rects2 = ax.bar(x + width/2, righterrors, width, label='Right', linewidth = 2,edgecolor = 'black')
+rects3 = ax.errorbar([-0.16, 0.84 ,1.84 ,2.84,3.84,4.84],lefterrors,yerr= lefterror_sem, fmt = 'none',color = 'black' , capsize = 2, linewidth = 2)
+rects4 = ax.errorbar([0.16, 1.16 ,2.16 ,3.16,4.16,5.16],righterrors,yerr= righterror_sem, fmt = 'none',color = 'black' , capsize = 2, linewidth = 2)
+plt.title('AD error per hemifield')
+plt.legend(['Left','Right'], fontsize = 30, loc = 'lower right')
+# for mse error
+righterrors = [np.mean(mean_mse[filenames_CNN.index(CNN_con_mse),1:18]),np.mean(mean_mse[filenames_CNN.index(CNN_sum_mse),1:18]),np.mean(mean_mse[filenames_CNN.index(CNN_sub_mse),1:18]),np.mean(mean_mse[filenames_CNN.index(CNN_con_ad),1:18]),np.mean(mean_mse[filenames_CNN.index(CNN_sum_ad),1:18]),np.mean(mean_mse[filenames_CNN.index(CNN_sub_ad),1:18])]
+lefterrors = [np.mean(mean_mse[filenames_CNN.index(CNN_con_mse),19:36]),np.mean(mean_mse[filenames_CNN.index(CNN_sum_mse),19:36]),np.mean(mean_mse[filenames_CNN.index(CNN_sub_mse),19:36]),np.mean(mean_mse[filenames_CNN.index(CNN_con_ad),19:36]),np.mean(mean_mse[filenames_CNN.index(CNN_sum_ad),19:36]),np.mean(mean_mse[filenames_CNN.index(CNN_sub_ad),19:36])]
+righterror_sem = [np.std(mean_mse[filenames_CNN.index(CNN_con_mse),1:18])/17,np.std(mean_mse[filenames_CNN.index(CNN_sum_mse),1:18])/17,np.std(mean_mse[filenames_CNN.index(CNN_sub_mse),1:18])/17,np.std(mean_mse[filenames_CNN.index(CNN_con_ad),1:18])/17,np.std(mean_mse[filenames_CNN.index(CNN_sum_ad),1:18])/17,np.std(mean_mse[filenames_CNN.index(CNN_sub_ad),1:18])/17]
+lefterror_sem = [np.std(mean_mse[filenames_CNN.index(CNN_con_mse),19:36])/17,np.std(mean_mse[filenames_CNN.index(CNN_sum_mse),19:36])/17,np.std(mean_mse[filenames_CNN.index(CNN_sub_mse),19:36])/17,np.std(mean_mse[filenames_CNN.index(CNN_con_ad),19:36])/17,np.std(mean_mse[filenames_CNN.index(CNN_sum_ad),19:36])/17,np.std(mean_mse[filenames_CNN.index(CNN_sub_ad),19:36])/17]
+labels = ['con','sum','sub','con','sum','sub']
+x = np.arange(len(labels))  # the label locations
+width = 0.35  # the width of the bars
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width/2, lefterrors, width, label='Left', linewidth = 2,edgecolor = 'black')
+rects2 = ax.bar(x + width/2, righterrors, width, label='Right', linewidth = 2,edgecolor = 'black')
+rects3 = ax.errorbar([-0.16, 0.84 ,1.84 ,2.84,3.84,4.84],lefterrors,yerr= lefterror_sem, fmt = 'none',color = 'black' , capsize = 2, linewidth = 2)
+rects4 = ax.errorbar([0.16, 1.16 ,2.16 ,3.16,4.16,5.16],righterrors,yerr= righterror_sem, fmt = 'none',color = 'black' , capsize = 2, linewidth = 2)
+plt.title('MSE error per hemifield')
+plt.legend(['Left','Right'], fontsize = 30, loc = 'upper left')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## confusion matrices of predictions
 # CNN models original data
 # cm_tarlocs = np.arange(0,370,10)
 cm_tarlocs = [0,5,15,25,35,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255,265,275,285,295,305,315,325,335,345,355,360]
-CNN_cm_preds = CNN_dict_preds['models_predictions_CNN_degs_azloc']
+CNN_cm_preds = CNN_dict_preds.item()['models_predictions_CNN_degs_azloc']
 CNN_cm_preds_hist = np.zeros((len(CNN_cm_preds),len(CNN_cm_preds[0,:,:]),len(cm_tarlocs)-1)) # note that in histogram the last one is included in the one but last
 for w in range(len(CNN_cm_preds)):
     cm_preds = CNN_cm_preds[w,:,:]
@@ -368,70 +645,6 @@ for x in range(len(CNN_cm_preds_hist_shift)):
     plt.savefig(dirfiles+'/CNN_'+tempnameshort+'_ConfusionMatrixPredictions_revcorrected.eps')
     plt.close('all')
 
-# RNN models original
-cm_tarlocs = [0,5,15,25,35,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255,265,275,285,295,305,315,325,335,345,355,360]
-RNN_cm_preds = RNN_dict_preds['models_predictions_RNN_degs_azloc']
-RNN_cm_preds_hist = np.zeros((len(RNN_cm_preds),len(RNN_cm_preds[0,:,:]),len(cm_tarlocs)-1)) # note that in histogram the last one is included in the one but last
-for w in range(len(RNN_cm_preds)):
-    cm_preds = RNN_cm_preds[w,:,:]
-    # cycle through the location to get the matrix
-    for x in range(len(cm_preds)):
-        tempdata = np.histogram(cm_preds[x], cm_tarlocs)
-        RNN_cm_preds_hist[w,x,:] = tempdata[0]
-# now sum the first and last column
-RNN_cm_preds_hist_original = RNN_cm_preds_hist # save original so you do not lose it         
-zerobin = RNN_cm_preds_hist[:,:,0]+RNN_cm_preds_hist[:,:,len(RNN_cm_preds_hist[0,0,:])-1] # compute zerobin from -5 to 5 degrees
-RNN_cm_preds_hist = np.concatenate((np.expand_dims(zerobin,axis=2), RNN_cm_preds_hist[:,:,1:-1]), axis = 2)
-# get frequencies instead of counts
-RNN_cm_preds_hist = RNN_cm_preds_hist/len(RNN_cm_preds[0,0,:])
-# shift the matrices  per axis (first rows, then columnns)
-RNN_cm_preds_hist_shift = np.roll(RNN_cm_preds_hist,18,axis = 2)
-RNN_cm_preds_hist_shift = np.roll(RNN_cm_preds_hist_shift,18,axis = 1)
-# create confusion matrices
-for x in range(len(RNN_cm_preds_hist_shift)):
-    tempname = filenames_RNN[x]
-    tempnameshort = tempname[8:-16]
-    plt.matshow(np.flipud(RNN_cm_preds_hist_shift[x,:,:]), cmap = 'Spectral_r', vmax = 1)
-    plt.gca().xaxis.tick_bottom()
-    plt.xticks([-.5,9,19,28,35.5],['180','270','0','90','170'], fontsize = 12)
-    plt.yticks([-.5,7,16,26,35.5],['170','90','0','270','180'], fontsize = 12)
-    plt.ylabel('Target location', fontsize = 12)
-    plt.xlabel('Predicted location', fontsize = 12)
-    plt.colorbar()
-    plt.savefig(dirfiles+'/RNN_'+tempnameshort+'ConfusionMatrixPredictions.eps')
-    plt.close('all')
-# RNN models reversal corrected
-cm_tarlocs = [0,5,15,25,35,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255,265,275,285,295,305,315,325,335,345,355,360]
-RNN_cm_preds = RNN_dict_preds_revcorr['models_predictions_RNN_degs_azloc_corrected']
-RNN_cm_preds_hist = np.zeros((len(RNN_cm_preds),len(RNN_cm_preds[0,:,:]),len(cm_tarlocs)-1)) # note that in histogram the last one is included in the one but last
-for w in range(len(RNN_cm_preds)):
-    cm_preds = RNN_cm_preds[w,:,:]
-    # cycle through the location to get the matrix
-    for x in range(len(cm_preds)):
-        tempdata = np.histogram(cm_preds[x], cm_tarlocs)
-        RNN_cm_preds_hist[w,x,:] = tempdata[0]
-# now sum the first and last column
-RNN_cm_preds_hist_original = RNN_cm_preds_hist # save original so you do not lose it         
-zerobin = RNN_cm_preds_hist[:,:,0]+RNN_cm_preds_hist[:,:,len(RNN_cm_preds_hist[0,0,:])-1] # compute zerobin from -5 to 5 degrees
-RNN_cm_preds_hist = np.concatenate((np.expand_dims(zerobin,axis=2), RNN_cm_preds_hist[:,:,1:-1]), axis = 2)
-# get frequencies instead of counts
-RNN_cm_preds_hist = RNN_cm_preds_hist/len(RNN_cm_preds[0,0,:])
-# shift the matrices  per axis (first rows, then columnns)
-RNN_cm_preds_hist_shift = np.roll(RNN_cm_preds_hist,18,axis = 2)
-RNN_cm_preds_hist_shift = np.roll(RNN_cm_preds_hist_shift,18,axis = 1)
-# create confusion matrices
-for x in range(len(RNN_cm_preds_hist_shift)):
-    tempname = filenames_RNN[x]
-    tempnameshort = tempname[8:-16]
-    plt.matshow(np.flipud(RNN_cm_preds_hist_shift[x,:,:]), cmap = 'Spectral_r', vmax = 1)
-    plt.gca().xaxis.tick_bottom()
-    plt.xticks([-.5,9,19,28,35.5],['180','270','0','90','170'], fontsize = 12)
-    plt.yticks([-.5,7,16,26,35.5],['170','90','0','270','180'], fontsize = 12)
-    plt.ylabel('Target location', fontsize = 12)
-    plt.xlabel('Predicted location', fontsize = 12)
-    plt.colorbar()
-    plt.savefig(dirfiles+'/RNN_'+tempnameshort+'ConfusionMatrixPredictions_revcorrected.eps')
-    plt.close('all')
 
 # for humans
 humanpreds = np.array(((.75,.12,.015,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,.015,.12),\
@@ -481,94 +694,6 @@ plt.colorbar()
 plt.savefig(dirfiles+'/Human_ConfusionMatrixPredictions.eps')
 plt.close('all')
 
-## polar plot of the error as a function of azimuth per model
-# loop through all CNN models and save the plots with the name
-# for MSE
-for x in range(len(filenames_CNN)):
-    tempname = filenames_CNN[x]
-    tempname = tempname[:-16]
-    CNN_mean_mse_az = CNN_dict_preds['mean_mse_az'][x,]
-    CNN_mean_mse_az_revcorr = CNN_dict_preds_revcorr['mean_mse_az_corrected'][x,]
-    radii_mse_1 = CNN_mean_mse_az
-    radii_mse_2 = np.zeros(1)
-    radii_mse_2[0] = CNN_mean_mse_az[0]
-    radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
-    radii_msecor_1 = CNN_mean_mse_az_revcorr
-    radii_msecor_2 = np.zeros(1)
-    radii_msecor_2[0] = CNN_mean_mse_az_revcorr[0]
-    radii_msecor = np.concatenate((radii_msecor_1, radii_msecor_2)) # you have to add the last point at the end of the array to close the circle
-    plt.figure(figsize = (3,3))
-    ax = plt.subplot(111, projection='polar')
-    theta_1 = azimuthrange
-    theta_2 = np.zeros(1)
-    theta_2[0] = azimuthrange[0]
-    theta = np.concatenate((theta_1, theta_2))
-    ax.plot(np.radians(theta),radii_mse, color = 'black', linewidth = 2)
-    ax.plot(np.radians(theta),radii_msecor, linestyle = '--', color = 'red', linewidth = 1)
-    ax.set_theta_zero_location("N")
-    ax.set_theta_direction(-1)
-    if 'MSE' in tempname:
-        ax.set_ylim(0,.30)
-        ax.set_yticks(np.arange(0,.30,.1))
-    elif 'AD' in tempname:
-        ax.set_ylim(0,.30)
-        ax.set_yticks(np.arange(0,.30,.1))
-    #ax.legend(('Raw', 'Reversal Corrected'), fontsize = 10,bbox_to_anchor=(1,.1)) # this latter thing is to put the legend in the correct location
-    plt.grid(linestyle = ':', linewidth = 1)
-    plt.savefig(dirfiles+'/PolarPlot_MSE_'+tempname+'.eps')
-    plt.close('all')
-for x in range(len(filenames_RNN)):
-    tempname = filenames_RNN[x]
-    tempname = tempname[2:-16]
-    RNN_mean_mse_az = RNN_dict_preds['mean_mse_az_RNN'][x,]
-    RNN_mean_mse_az_revcorr = RNN_dict_preds_revcorr['mean_mse_az_corrected_RNN'][x,]
-    radii_mse_1 = RNN_mean_mse_az
-    radii_mse_2 = np.zeros(1)
-    radii_mse_2[0] = RNN_mean_mse_az[0]
-    radii_mse = np.concatenate((radii_mse_1, radii_mse_2)) # you have to add the last point at the end of the array to close the circle
-    radii_msecor_1 = RNN_mean_mse_az_revcorr
-    radii_msecor_2 = np.zeros(1)
-    radii_msecor_2[0] = RNN_mean_mse_az_revcorr[0]
-    radii_msecor = np.concatenate((radii_msecor_1, radii_msecor_2)) # you have to add the last point at the end of the array to close the circle
-    plt.figure(figsize = (3,3))
-    ax = plt.subplot(111, projection='polar')
-    theta_1 = azimuthrange
-    theta_2 = np.zeros(1)
-    theta_2[0] = azimuthrange[0]
-    theta = np.concatenate((theta_1, theta_2))
-    ax.plot(np.radians(theta),radii_mse, color = 'black', linewidth = 2)
-    ax.plot(np.radians(theta),radii_msecor, linestyle = '--', color = 'red', linewidth = 1)
-    ax.set_theta_zero_location("N")
-    ax.set_theta_direction(-1)
-    if 'MSE' in tempname:
-        ax.set_ylim(0,.30)
-        ax.set_yticks(np.arange(0,.30,.1))
-    elif 'AD' in tempname:
-        ax.set_ylim(0,.35)
-        ax.set_yticks(np.arange(0,.30,.1))
-    #ax.legend(('Raw', 'Reversal Corrected'), fontsize = 10,bbox_to_anchor=(1,.1)) # this latter thing is to put the legend in the correct location
-    plt.grid(linestyle = ':', linewidth = 1)
-    plt.savefig(dirfiles+'/PolarPlot_MSE_'+tempname+'.eps')
-    plt.close('all')
-# for human MSE
-radii_human_mse = [.08, .09, .1, .12, .14, .16, .17, .175, .18, .18, .18, .175, .175, .172, .172, .168, .168, .168, .168, .168, .168, .172, .172, .175,.175,.180,.180,.18,.175,.17,.17, .16,.14,.12, .1,.09,.08]    
-radii_human_mse_cor = [.04, .05, .07, .1, .11, .12, .14, .16, .18, .18, .18, .175, .175, .172, .172, .168, .168, .168, .168, .168, .168, .172, .172, .175,.175,.180,.180,.18,.18,.16,.14, .12,.11,.1, .07,.05,.04]    
-plt.figure(figsize = (3,3))
-ax = plt.subplot(111, projection='polar')
-theta_1 = azimuthrange
-theta_2 = np.zeros(1)
-theta_2[0] = azimuthrange[0]
-theta = np.concatenate((theta_1, theta_2))
-ax.plot(np.radians(theta),radii_human_mse, color = 'black', linewidth = 2)
-ax.plot(np.radians(theta),radii_human_mse_cor, linestyle = '--', color = 'red', linewidth = 1)
-ax.set_theta_zero_location("N")
-ax.set_theta_direction(-1)
-ax.set_ylim(0,.30)
-ax.set_yticks(np.arange(0,.30,.1))
-#ax.legend(('Raw', 'Reversal Corrected'), fontsize = 10,bbox_to_anchor=(1,.1)) # this latter thing is to put the legend in the correct location
-plt.grid(linestyle = ':', linewidth = 1)
-plt.savefig(dirfiles+'/PolarPlot_Human_MSE_'+tempname+'.eps')
-plt.close('all')
 
 # for AD
 for x in range(len(filenames_CNN)):
@@ -599,34 +724,7 @@ for x in range(len(filenames_CNN)):
     plt.grid(linestyle = ':', linewidth = 1)
     plt.savefig(dirfiles+'/PolarPlot_AD_'+tempname+'.eps')
     plt.close('all')
-for x in range(len(filenames_RNN)):
-    tempname = filenames_RNN[x]
-    tempname = tempname[2:-16]
-    RNN_mean_ad_az = RNN_dict_preds['mean_cosdistdeg_az_RNN'][x,]
-    RNN_mean_ad_az_revcorr = RNN_dict_preds_revcorr['mean_cosdistdeg_az_corrected_RNN'][x,]
-    radii_ad_1 = RNN_mean_ad_az
-    radii_ad_2 = np.zeros(1)
-    radii_ad_2[0] = RNN_mean_ad_az[0]
-    radii_ad = np.concatenate((radii_ad_1, radii_ad_2)) # you have to add the last point at the end of the array to close the circle
-    radii_adcor_1 = RNN_mean_ad_az_revcorr
-    radii_adcor_2 = np.zeros(1)
-    radii_adcor_2[0] = RNN_mean_ad_az_revcorr[0]
-    radii_adcor = np.concatenate((radii_adcor_1, radii_adcor_2)) # you have to add the last point at the end of the array to close the circle
-    plt.figure(figsize = (3,3))
-    ax = plt.subplot(111, projection='polar')
-    theta_1 = azimuthrange
-    theta_2 = np.zeros(1)
-    theta_2[0] = azimuthrange[0]
-    theta = np.concatenate((theta_1, theta_2))
-    ax.plot(np.radians(theta),radii_ad, color = 'black', linewidth = 2)
-    ax.plot(np.radians(theta),radii_adcor, linestyle = '--', color = 'red', linewidth = 1)
-    ax.set_theta_zero_location("N")
-    ax.set_theta_direction(-1)
-    ax.set_ylim(0,12)
-    ax.set_yticks(np.arange(0,12,4))
-    plt.grid(linestyle = ':', linewidth = 1)
-    plt.savefig(dirfiles+'/PolarPlot_AD_'+tempname+'.eps')
-    plt.close('all')
+
 # for human AD
 radii_human_ad = [4, 5, 5.8, 6.5, 7.2, 7.8, 8.3, 8.4, 8.4, 8.5, 8.5, 8.35, 8.35, 8.1, 8.1, 7.9, 7.9, 7.9, 7.9, 7.9, 7.9, 8.1, 8.1, 8.35, 8.35, 8.35, 8.5, 8.5, 8.4, 8.4, 8.3, 7.8, 7.2,6.5,5.8, 5,4]    
 radii_human_ad_cor = [3, 4, 4.8, 5.5, 6.5, 7.2, 8, 8.4, 8.4, 8.5, 8.5, 8.35, 8.35, 8.1, 8.1, 7.9, 7.9, 7.9, 7.9, 7.9, 7.9, 8.1, 8.1, 8.35, 8.35, 8.35, 8.5, 8.5, 8.4, 8.4, 8, 7.2,6.5,5.5,4.8, 4,3]    
