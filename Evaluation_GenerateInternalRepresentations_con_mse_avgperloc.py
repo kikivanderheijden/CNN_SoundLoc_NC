@@ -44,7 +44,7 @@ sounds_r = np.load(dir_sounds+'/an_r_eval_sounds.npy')
 print('sound arrays loaded')
 
 # load labels
-labels_val =  np.load(dir_models+"/labels_eval_sounds.npy")
+labels_val =  np.load(dir_sounds+"/labels_eval_sounds.npy")
 names_val = pickle.load(open(dir_models+'/listfilenames_eval_sounds.p','rb'))
 # retrieve angle names
 names_val_angle = np.empty([len(names_val)])
