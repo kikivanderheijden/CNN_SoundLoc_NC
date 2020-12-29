@@ -21,6 +21,18 @@ sounds_l = np.load(dir_sounds+'/an_l_eval_sounds.npy')
 sounds_r = np.load(dir_sounds+'/an_r_eval_sounds.npy')
 print('sound arrays loaded')
 
+# divide sounds into four arrays to solve memory issues
+sounds_l1 = sounds_l[0:3402,]
+sounds_l2 = sounds_l[3402:6804,]
+sounds_l3 = sounds_l[6804:10206,]
+sounds_l4 = sounds_l[10206:,]
+sounds_r1 = sounds_r[0:3402,]
+sounds_r2 = sounds_r[3402:6804,]
+sounds_r3 = sounds_r[6804:10206,]
+sounds_r4 = sounds_r[10206:,]
+
+del sounds_l, sounds_r
+
 # specify model layers of interest (these are all the 2D conv layers), layer 2 = conv2D left, layer 3 = conv2D right
 # layer 9 = conv2D on merge, layer 11 = conv2D , layer 14 = conv2D
 layers_interest = [2,3,9,11,14]
@@ -39,7 +51,18 @@ model = models.load_model(dir_models+'/'+con_mse, custom_objects={'GlorotUniform
 # successive_outputs = [layer.output for i in model.layers[0:]] # this defines outputs for all layers
 successive_outputs = [model.layers[i].output for i in layers_interest]
 visualization_model = models.Model(inputs = model.input, outputs = successive_outputs)
-feature_maps = visualization_model.predict([sounds_l,sounds_r])
-pickle.dump(feature_maps, open(dir_models+'/featuremaps_con_mse.p','wb'))
-print('model con mse done')
+feature_maps = visualization_model.predict([sounds_l1,sounds_r1])
+pickle.dump(feature_maps, open(dir_models+'/featuremaps_con_mse1.p','wb'))
+print('model con mse1 done')
+feature_maps = visualization_model.predict([sounds_l2,sounds_r2])
+pickle.dump(feature_maps, open(dir_models+'/featuremaps_con_mse2.p','wb'))
+print('model con mse2 done')
+feature_maps = visualization_model.predict([sounds_l3,sounds_r3])
+pickle.dump(feature_maps, open(dir_models+'/featuremaps_con_mse3.p','wb'))
+print('model con mse3 done')
+feature_maps = visualization_model.predict([sounds_l4,sounds_r4])
+pickle.dump(feature_maps, open(dir_models+'/featuremaps_con_mse4.p','wb'))
+print('model con mse4 done')
+
+
 
