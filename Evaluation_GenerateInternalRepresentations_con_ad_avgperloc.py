@@ -32,7 +32,7 @@ azimuthrange = np.arange(0,360,10)
 # layer 9 = conv2D on merge, layer 11 = conv2D , layer 14 = conv2D
 layers_interest = [2,3,9,12,15]
 # specify model name
-sub_ad = 'CNN_sub_K-32-32-64-128_KS-37-37-37-37_MP-12-22-22-32_DO-2-2-2-2-2_AD_final.h5'
+con_ad = 'CNN_con_K-32-64-128-128_KS-35-35-35-35_MP-12-22-22-32_DO-2-2-2-2-2_AD_final.h5'
 
 #-----------------------------------------------------------------------------
 # load and prepare data 
@@ -54,7 +54,7 @@ for x in names_val:
     cnt1 += 1
 
 # load model
-model = models.load_model(dir_models+'/'+sub_ad, custom_objects={'GlorotUniform': glorot_uniform(), "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular}) 
+model = models.load_model(dir_models+'/'+con_ad, custom_objects={'GlorotUniform': glorot_uniform(), "cos_dist_2D_angular": cos_dist_2D_angular, "cos_distmet_2D_angular": cos_distmet_2D_angular}) 
 print('model loaded successfully')
 
 #-----------------------------------------------------------------------------
@@ -97,12 +97,12 @@ for x in range(len(azimuthrange)):
 
 
 # save feature maps
-np.save(dir_featuremaps+"/sub_ad_fmap_l2_1",fmap_l2_avg)
-np.save(dir_featuremaps+"/sub_ad_fmap_l3_1",fmap_l3_avg)
-np.save(dir_featuremaps+"/sub_ad_fmap_l9_1",fmap_l9_avg)
-np.save(dir_featuremaps+"/sub_ad_fmap_l12_1",fmap_l12_avg)
-np.save(dir_featuremaps+"/sub_ad_fmap_l15_1",fmap_l15_avg)
+np.save(dir_featuremaps+"/con_ad_fmap_l2_1",fmap_l2_avg)
+np.save(dir_featuremaps+"/con_ad_fmap_l3_1",fmap_l3_avg)
+np.save(dir_featuremaps+"/con_ad_fmap_l9_1",fmap_l9_avg)
+np.save(dir_featuremaps+"/con_ad_fmap_l12_1",fmap_l12_avg)
+np.save(dir_featuremaps+"/con_ad_fmap_l15_1",fmap_l15_avg)
 del fmap_l2_avg,fmap_l3_avg,fmap_l9_avg,fmap_l12_avg,fmap_l15_avg
-print('model sub_ad done')
+print('model con_ad done')
 
 
