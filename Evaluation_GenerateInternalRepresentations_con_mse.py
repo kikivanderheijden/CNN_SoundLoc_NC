@@ -7,6 +7,13 @@ dir_sounds = '/workspace/notebooks/sounds_small_npy/eval'
 dir_scripts = '/workspace/notebooks/scripts'
 dir_featuremaps = '/workspace/notebooks/featuremaps'
 
+# local
+dir_models = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\NC_CNN_SoundLoc_EvaluationFiles'
+dir_sounds = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\NC_CNN_SoundLoc_EvaluationFiles'
+dir_scripts = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\NC_CNN_SoundLoc'
+dir_featuremaps = r'C:\Users\kiki.vanderheijden\Documents\PYTHON\NC_CNN_SoundLoc_EvaluationFiles'
+
+
 os.chdir(dir_scripts)
 # libraries
 import numpy as np
@@ -16,8 +23,8 @@ from CustLoss_MSE import cust_mean_squared_error # note that in this loss functi
 from CustMet_cosine_distance_angular import cos_distmet_2D_angular
 
 # load evaluation dataset
-sounds_l = np.load(dir_sounds+'/an_l_eval_sounds.npy')
-sounds_r = np.load(dir_sounds+'/an_r_eval_sounds.npy')
+sounds_l = np.load(dir_sounds+'\\an_l_eval_sounds.npy')
+sounds_r = np.load(dir_sounds+'\\an_r_eval_sounds.npy')
 print('sound arrays loaded')
 
 # divide sounds into four arrays to solve memory issues
@@ -41,7 +48,7 @@ layers_interest = [2,3,9,11,14]
 con_mse = 'CNN_con_K-32-64-64-128_KS-35-35-35-35_MP-12-22-22-32_DO-2-2-2-2-2_MSE_final.h5'
 
 # perform operation 6 times
-model = models.load_model(dir_models+'/'+con_mse, custom_objects={'GlorotUniform': glorot_uniform(), "cust_mean_squared_error": cust_mean_squared_error, "cos_distmet_2D_angular": cos_distmet_2D_angular} ) 
+model = models.load_model(dir_models+'\\'+con_mse, custom_objects={'GlorotUniform': glorot_uniform(), "cust_mean_squared_error": cust_mean_squared_error, "cos_distmet_2D_angular": cos_distmet_2D_angular} ) 
 print('model loaded successfully')
 # define a new model, input = testsound, output = intermediate representations for all layers in the previous model from the first
 # successive_outputs = [layer.output for i in model.layers[0:]] # this defines outputs for all layers
@@ -57,12 +64,12 @@ fmap_l9_1 = feature_maps[0]
 fmap_l11_1 = feature_maps[1]
 fmap_l14_1 = feature_maps[1]
 # save feature maps
-np.save(dir_featuremaps+"/fmap_l2_1",fmap_l2_1)
-np.save(dir_featuremaps+"/fmap_l3_1",fmap_l3_1)
-np.save(dir_featuremaps+"/fmap_l9_1",fmap_l9_1)
-np.save(dir_featuremaps+"/fmap_l11_1",fmap_l11_1)
-np.save(dir_featuremaps+"/fmap_l14_1",fmap_l14_1)
-del fmap_l2_1,fmap_l3_1,fmap_l9_1,fmap_l11_1,fmap_l14_1,sounds_l1,sounds_r1,feature_maps
+np.save(dir_featuremaps+"\\con_mse_fmap_l2_1",fmap_l2_1)
+np.save(dir_featuremaps+"\\con_mse_fmap_l3_1",fmap_l3_1)
+np.save(dir_featuremaps+"\\con_mse_fmap_l9_1",fmap_l9_1)
+np.save(dir_featuremaps+"\\con_mse_fmap_l11_1",fmap_l11_1)
+np.save(dir_featuremaps+"\\con_mse_fmap_l14_1",fmap_l14_1)
+del fmap_l2_1,fmap_l3_1,fmap_l9_1,fmap_l11_1,fmap_l14_1,sounds_l1,sounds_r1
 print('model con mse1 done')
 
 # predict second round
@@ -73,13 +80,14 @@ fmap_l3_2 = feature_maps[1]
 fmap_l9_2 = feature_maps[0]
 fmap_l11_2 = feature_maps[1]
 fmap_l14_2 = feature_maps[1]
+del feature_maps
 # save feature maps
-np.save(dir_featuremaps+"/fmap_l2_2",fmap_l2_2)
-np.save(dir_featuremaps+"/fmap_l3_2",fmap_l3_2)
-np.save(dir_featuremaps+"/fmap_l9_2",fmap_l9_2)
-np.save(dir_featuremaps+"/fmap_l11_2",fmap_l11_2)
-np.save(dir_featuremaps+"/fmap_l14_2",fmap_l14_2)
-del fmap_l2_2,fmap_l3_2,fmap_l9_2,fmap_l11_2,fmap_l14_2,sounds_l2,sounds_r2,feature_maps
+np.save(dir_featuremaps+"\\con_mse_fmap_l2_2",fmap_l2_2)
+np.save(dir_featuremaps+"\\con_mse_fmap_l3_2",fmap_l3_2)
+np.save(dir_featuremaps+"\\con_mse_fmap_l9_2",fmap_l9_2)
+np.save(dir_featuremaps+"\\con_mse_fmap_l11_2",fmap_l11_2)
+np.save(dir_featuremaps+"\\con_mse_fmap_l14_2",fmap_l14_2)
+del fmap_l2_2,fmap_l3_2,fmap_l9_2,fmap_l11_2,fmap_l14_2,sounds_l2,sounds_r2
 print('model con mse2 done')
 
 
@@ -91,13 +99,14 @@ fmap_l3_3 = feature_maps[1]
 fmap_l9_3 = feature_maps[0]
 fmap_l11_3 = feature_maps[1]
 fmap_l14_3 = feature_maps[1]
+del feature_maps
 # save feature maps
-np.save(dir_featuremaps+"/fmap_l2_3",fmap_l2_3)
-np.save(dir_featuremaps+"/fmap_l3_3",fmap_l3_3)
-np.save(dir_featuremaps+"/fmap_l9_3",fmap_l9_3)
-np.save(dir_featuremaps+"/fmap_l11_3",fmap_l11_3)
-np.save(dir_featuremaps+"/fmap_l14_3",fmap_l14_3)
-del fmap_l2_3,fmap_l3_3,fmap_l9_3,fmap_l11_3,fmap_l14_3,sounds_l3,sounds_r3,feature_maps
+np.save(dir_featuremaps+"\\con_mse_fmap_l2_3",fmap_l2_3)
+np.save(dir_featuremaps+"\\con_mse_fmap_l3_3",fmap_l3_3)
+np.save(dir_featuremaps+"\\con_mse_fmap_l9_3",fmap_l9_3)
+np.save(dir_featuremaps+"\\con_mse_fmap_l11_3",fmap_l11_3)
+np.save(dir_featuremaps+"\\con_mse_fmap_l14_3",fmap_l14_3)
+del fmap_l2_3,fmap_l3_3,fmap_l9_3,fmap_l11_3,fmap_l14_3,sounds_l3,sounds_r3
 print('model con mse3 done')
 
 # predict fourth round
@@ -108,13 +117,14 @@ fmap_l3_4 = feature_maps[1]
 fmap_l9_4 = feature_maps[0]
 fmap_l11_4 = feature_maps[1]
 fmap_l14_4 = feature_maps[1]
+del feature_maps
 # save feature maps
-np.save(dir_featuremaps+"/fmap_l2_4",fmap_l2_4)
-np.save(dir_featuremaps+"/fmap_l3_4",fmap_l3_4)
-np.save(dir_featuremaps+"/fmap_l9_4",fmap_l9_4)
-np.save(dir_featuremaps+"/fmap_l11_4",fmap_l11_4)
-np.save(dir_featuremaps+"/fmap_l14_4",fmap_l14_4)
-del fmap_l2_4,fmap_l3_4,fmap_l9_4,fmap_l11_4,fmap_l14_4,sounds_l4,sounds_r4,feature_maps
+np.save(dir_featuremaps+"\\con_mse_fmap_l2_4",fmap_l2_4)
+np.save(dir_featuremaps+"\\con_mse_fmap_l3_4",fmap_l3_4)
+np.save(dir_featuremaps+"\\con_mse_fmap_l9_4",fmap_l9_4)
+np.save(dir_featuremaps+"\\con_mse_fmap_l11_4",fmap_l11_4)
+np.save(dir_featuremaps+"\\con_mse_fmap_l14_4",fmap_l14_4)
+del fmap_l2_4,fmap_l3_4,fmap_l9_4,fmap_l11_4,fmap_l14_4,sounds_l4,sounds_r4
 print('model con mse3 done')
 
 
